@@ -1,0 +1,9 @@
+[package]
+name = "parts_manager"
+version = "0.1.0"
+authors = ["Diana"]
+edition = "2018"
+
+[dependencies]
+parts = { path = "/home/diana/Projects/_NiteLinux/Userspace/parts" }
+clap = "2.33.0"
