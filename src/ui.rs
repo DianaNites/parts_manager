@@ -1,9 +1,12 @@
-use crate::util::{get_disks, Disk};
+use crate::{
+    table::TableView,
+    util::{get_disks, Disk},
+};
 use cursive::{
     align::{HAlign, VAlign},
     event::Key,
     theme::{BaseColor::*, Color::*, PaletteColor::*, Theme},
-    traits::Boxable,
+    traits::Resizable,
     views::{DummyView, LinearLayout, Panel, SelectView, TextView},
     Cursive,
 };
@@ -19,43 +22,12 @@ fn theme(root: &Cursive) -> Theme {
 
 fn parts_edit(root: &mut Cursive, _disk: &Disk) {
     root.pop_layer();
-    //
-    let mut parts = SelectView::new();
-    parts.add_item("Dummy", ());
-    parts.add_item("Dummy", ());
-    //
-    let mut devices = LinearLayout::vertical();
-    devices.add_child(TextView::new("Device").h_align(HAlign::Left));
-    devices.add_child(DummyView);
-    // devices.add_child(TextView::new("Dummy Part 1").h_align(HAlign::Left));
-    // devices.add_child(TextView::new("Dummy Part 2").h_align(HAlign::Left));
-    // devices.add_child(TextView::new("Dummy Part 3").h_align(HAlign::Left));
-    devices.add_child(parts);
 
-    let mut starts = LinearLayout::vertical();
-    starts.add_child(TextView::new("Start").h_align(HAlign::Right));
-    starts.add_child(DummyView);
-    starts.add_child(TextView::new("1").h_align(HAlign::Right));
-    starts.add_child(TextView::new("2").h_align(HAlign::Right));
-    starts.add_child(TextView::new("3").h_align(HAlign::Right));
     //
+    let columns: &[&str; 5] = &["Device", "Start", "End", "Size", "Type"];
+    let rows = vec![&["One", "1", "2", "3", "Test"]];
     root.add_fullscreen_layer(
-        Panel::new(
-            LinearLayout::vertical()
-                .child(
-                    LinearLayout::horizontal()
-                        .child(devices)
-                        .child(DummyView.full_width())
-                        .child(starts)
-                        // .child(TextView::new("Device").h_align(HAlign::Left).full_width())
-                        // .child(TextView::new("Start").h_align(HAlign::Center).full_width())
-                        .child(TextView::new("End").h_align(HAlign::Center).full_width())
-                        .child(TextView::new("Size").h_align(HAlign::Center).full_width())
-                        .child(TextView::new("Type").h_align(HAlign::Center).full_width()),
-                )
-                .child(DummyView), // .child(parts),
-        )
-        .full_screen(),
+        Panel::new(TableView::new(columns, rows).full_screen()).full_screen(),
     );
 }
 
