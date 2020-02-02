@@ -1,7 +1,4 @@
-use crate::{
-    table::TableView,
-    util::{get_disks, Disk},
-};
+use crate::util::{get_disks, Disk};
 use cursive::{
     align::{HAlign, VAlign},
     event::Key,
@@ -26,9 +23,9 @@ fn parts_edit(root: &mut Cursive, _disk: &Disk) {
     //
     let columns: &[&str; 5] = &["Device", "Start", "End", "Size", "Type"];
     let rows = vec![&["One", "1", "2", "3", "Test"]];
-    root.add_fullscreen_layer(
-        Panel::new(TableView::new(columns, rows).full_screen()).full_screen(),
-    );
+    // root.add_fullscreen_layer(
+    //     Panel::new(TableView::new(columns,
+    // rows).full_screen()).full_screen(), );
 }
 
 fn disk_selection(root: &mut Cursive) {

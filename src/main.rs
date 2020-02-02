@@ -1,6 +1,5 @@
 use anyhow::Result;
 
-mod table;
 mod ui;
 mod util;
 
