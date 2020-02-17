@@ -36,7 +36,7 @@ fn disk_selection(root: &mut Cursive) {
     let select = Panel::new(
         LinearLayout::vertical()
             .child(TextView::new(format!(
-                "Part {}, {}",
+                "Parts {}, {}",
                 std::env!("CARGO_PKG_VERSION"),
                 std::env!("CARGO_PKG_DESCRIPTION")
             )))
