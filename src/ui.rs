@@ -1,4 +1,4 @@
-use crate::util::{get_disks, Disk};
+use crate::util::get_disks;
 use cursive::{
     align::{HAlign, VAlign},
     event::Key,
@@ -7,6 +7,7 @@ use cursive::{
     views::{DummyView, LinearLayout, Panel, SelectView, TextView},
     Cursive,
 };
+use linapi::{devices::BlockDevice, types::Device as _};
 
 fn theme(root: &Cursive) -> Theme {
     let mut theme = root.current_theme().clone();
@@ -17,7 +18,7 @@ fn theme(root: &Cursive) -> Theme {
     theme
 }
 
-fn parts_edit(root: &mut Cursive, _disk: &Disk) {
+fn parts_edit(root: &mut Cursive, _disk: &BlockDevice) {
     root.pop_layer();
 
     //
@@ -30,7 +31,9 @@ fn parts_edit(root: &mut Cursive, _disk: &Disk) {
 
 fn disk_selection(root: &mut Cursive) {
     let mut disks = SelectView::new().h_align(HAlign::Center);
-    disks.add_all(get_disks());
+    let mut d = get_disks();
+    d.sort_unstable_by_key(|d| d.1.kernel_name());
+    disks.add_all(d);
     disks.set_on_submit(parts_edit);
     //
     let select = Panel::new(
