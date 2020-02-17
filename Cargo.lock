@@ -381,7 +381,7 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 
 [[package]]
 name = "linapi"
-version = "0.3.1"
+version = "0.3.3"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 dependencies = [
  "bitflags 1.2.1 (registry+https://github.com/rust-lang/crates.io-index)",
@@ -532,7 +532,7 @@ version = "0.1.0"
 dependencies = [
  "anyhow 1.0.26 (registry+https://github.com/rust-lang/crates.io-index)",
  "cursive 0.14.0 (registry+https://github.com/rust-lang/crates.io-index)",
- "linapi 0.3.1 (registry+https://github.com/rust-lang/crates.io-index)",
+ "linapi 0.3.3 (registry+https://github.com/rust-lang/crates.io-index)",
  "parts 0.1.0",
  "structopt 0.3.9 (registry+https://github.com/rust-lang/crates.io-index)",
 ]
@@ -956,7 +956,7 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 "checksum ident_case 1.0.1 (registry+https://github.com/rust-lang/crates.io-index)" = "b9e0384b61958566e926dc50660321d12159025e767c18e043daf26b70104c39"
 "checksum lazy_static 1.4.0 (registry+https://github.com/rust-lang/crates.io-index)" = "e2abad23fbc42b3700f2f279844dc832adb2b2eb069b2df918f455c4e18cc646"
 "checksum libc 0.2.66 (registry+https://github.com/rust-lang/crates.io-index)" = "d515b1f41455adea1313a4a2ac8a8a477634fbae63cc6100e3aebb207ce61558"
-"checksum linapi 0.3.1 (registry+https://github.com/rust-lang/crates.io-index)" = "1c005018e8068f003730b89e7d2926461497a729d77a82b57b4f73bd7d703ef8"
+"checksum linapi 0.3.3 (registry+https://github.com/rust-lang/crates.io-index)" = "0d7d01b5535dfffcf2eb61a318d9bee2498e118880d4416b9ce7edfec6b7d921"
 "checksum log 0.4.8 (registry+https://github.com/rust-lang/crates.io-index)" = "14b6052be84e6b71ab17edffc2eeabf5c2c3ae1fdb464aae35ac50c67a44e1f7"
 "checksum lzma-rs 0.1.2 (registry+https://github.com/rust-lang/crates.io-index)" = "ad0606857a51b9088eb75b52d8431b7b7c8656849cc6cb96dde9f3d18a1a4b58"
 "checksum memmap 0.7.0 (registry+https://github.com/rust-lang/crates.io-index)" = "6585fd95e7bb50d6cc31e20d4cf9afb4e2ba16c5846fc76793f11218da9c475b"
