@@ -9,7 +9,7 @@ description = "A GPT Partition Manager"
 parts = { path = "../_NiteLinux/Userspace/parts" }
 structopt = "0.3.9"
 anyhow = "1.0.26"
-linapi = "0.3.3"
+linapi = "0.4.2"
 byte-unit = "3.0.3"
 
 [dependencies.cursive]
