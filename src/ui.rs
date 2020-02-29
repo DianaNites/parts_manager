@@ -7,7 +7,7 @@ use cursive::{
     views::{DummyView, LinearLayout, Panel, SelectView, TextView},
     Cursive,
 };
-use linapi::{devices::BlockDevice, types::Device as _};
+use linapi::system::devices::block::Block;
 
 fn theme(root: &Cursive) -> Theme {
     let mut theme = root.current_theme().clone();
@@ -18,7 +18,7 @@ fn theme(root: &Cursive) -> Theme {
     theme
 }
 
-fn parts_edit(root: &mut Cursive, _disk: &BlockDevice) {
+fn parts_edit(root: &mut Cursive, _disk: &Block) {
     root.pop_layer();
 
     //
@@ -32,7 +32,7 @@ fn parts_edit(root: &mut Cursive, _disk: &BlockDevice) {
 fn disk_selection(root: &mut Cursive) {
     let mut disks = SelectView::new().h_align(HAlign::Center);
     let mut d = get_disks();
-    d.sort_unstable_by_key(|d| d.1.kernel_name());
+    d.sort_unstable_by(|a, b| a.1.name().cmp(b.1.name()));
     disks.add_all(d);
     disks.set_on_submit(parts_edit);
     //
