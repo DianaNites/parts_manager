@@ -39,10 +39,10 @@ fn error<T, F: FnMut() -> Result<T>>(root: &mut Cursive, mut func: F) -> Result<
     }
 }
 
-fn parts_edit(mut root: &mut Cursive, disk: &Block) -> Result<()> {
+fn parts_edit(root: &mut Cursive, disk: &Block) -> Result<()> {
     root.pop_layer();
     let mut parts = SelectView::new().h_align(HAlign::Center);
-    let mut p: Vec<Partition> = error(root, || Ok(disk.partitions()?))?;
+    let p: Vec<Partition> = error(root, || Ok(disk.partitions()?))?;
     for p in p {
         let start = error(root, || Ok(p.start()?))?;
         let size = error(root, || Ok(p.size()?))?;
@@ -88,7 +88,7 @@ fn parts_edit(mut root: &mut Cursive, disk: &Block) -> Result<()> {
     Ok(())
 }
 
-fn disk_selection(mut root: &mut Cursive) -> Result<()> {
+fn disk_selection(root: &mut Cursive) -> Result<()> {
     let mut disks = SelectView::new().h_align(HAlign::Center);
     let mut d = get_disks().context("Couldn't get disks")?;
     d.sort_unstable_by(|a, b| a.1.name().cmp(b.1.name()));
