@@ -372,8 +372,7 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 
 [[package]]
 name = "linapi"
-version = "0.4.3"
-source = "registry+https://github.com/rust-lang/crates.io-index"
+version = "0.4.4-alpha.0"
 dependencies = [
  "bitflags 1.2.1 (registry+https://github.com/rust-lang/crates.io-index)",
  "displaydoc 0.1.5 (registry+https://github.com/rust-lang/crates.io-index)",
@@ -531,7 +530,7 @@ dependencies = [
  "anyhow 1.0.26 (registry+https://github.com/rust-lang/crates.io-index)",
  "byte-unit 3.0.3 (registry+https://github.com/rust-lang/crates.io-index)",
  "cursive 0.14.0 (registry+https://github.com/rust-lang/crates.io-index)",
- "linapi 0.4.3 (registry+https://github.com/rust-lang/crates.io-index)",
+ "linapi 0.4.4-alpha.0",
  "parts 0.1.0",
  "structopt 0.3.9 (registry+https://github.com/rust-lang/crates.io-index)",
 ]
@@ -957,7 +956,6 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 "checksum ident_case 1.0.1 (registry+https://github.com/rust-lang/crates.io-index)" = "b9e0384b61958566e926dc50660321d12159025e767c18e043daf26b70104c39"
 "checksum lazy_static 1.4.0 (registry+https://github.com/rust-lang/crates.io-index)" = "e2abad23fbc42b3700f2f279844dc832adb2b2eb069b2df918f455c4e18cc646"
 "checksum libc 0.2.67 (registry+https://github.com/rust-lang/crates.io-index)" = "eb147597cdf94ed43ab7a9038716637d2d1bf2bc571da995d0028dec06bd3018"
-"checksum linapi 0.4.3 (registry+https://github.com/rust-lang/crates.io-index)" = "01b16fe1b3667cd767e3ba66e8d03c38b833206b08ec02c802528f43ab043f31"
 "checksum log 0.4.8 (registry+https://github.com/rust-lang/crates.io-index)" = "14b6052be84e6b71ab17edffc2eeabf5c2c3ae1fdb464aae35ac50c67a44e1f7"
 "checksum lzma-sys 0.1.15 (registry+https://github.com/rust-lang/crates.io-index)" = "53e48818fd597d46155132bbbb9505d6d1b3d360b4ee25cfa91c406f8a90fe91"
 "checksum maybe-uninit 2.0.0 (registry+https://github.com/rust-lang/crates.io-index)" = "60302e4db3a61da70c0cb7991976248362f30319e88850c487b9b95bbf059e00"
