@@ -6,6 +6,6 @@ mod util;
 use ui::create_ui;
 
 fn main() -> Result<()> {
-    create_ui();
+    create_ui()?;
     Ok(())
 }
