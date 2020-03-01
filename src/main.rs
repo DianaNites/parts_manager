@@ -112,7 +112,7 @@ fn disk_selection() -> Result<impl View> {
             "Disk {} - {} - Model: {}",
             disk.name(), //
             Byte::from_bytes(disk.size()?.into()).get_appropriate_unit(true),
-            disk.model()?.unwrap_or_default(),
+            disk.model()?.unwrap_or_else(|| "None".into()),
         );
         disks_view.add_item(label, disk);
     }
