@@ -10,6 +10,17 @@ use cursive::{
 };
 use linapi::system::devices::block::Block;
 use parts::{types::BlockSize, Gpt};
+use std::path::PathBuf;
+use structopt::{clap::AppSettings, StructOpt};
+
+#[derive(StructOpt)]
+#[structopt(global_setting(AppSettings::ColoredHelp))]
+struct Args {
+    /// Path to device or file to partition.
+    ///
+    /// If not provided, you can choose between connected block devices.
+    device: Option<PathBuf>,
+}
 
 fn selection<T: 'static>() -> SelectView<T> {
     SelectView::new().h_align(HAlign::Center)
@@ -137,7 +148,7 @@ fn disk_selection() -> Result<impl View> {
 }
 
 fn main() -> Result<()> {
-    // ui::create_ui()?;
+    let args: Args = Args::from_args();
     //
     let mut root = Cursive::default();
     // Theme
@@ -149,10 +160,14 @@ fn main() -> Result<()> {
     root.set_theme(theme);
 
     // User Entry point
-    root.add_fullscreen_layer(disk_selection()?);
-    // Disk Info box will start empty, make sure callback is called and it's set.
-    root.call_on_name("disks", |v: &mut SelectView<Block>| v.set_selection(0))
-        .unwrap()(&mut root);
+    if args.device.is_none() {
+        root.add_fullscreen_layer(disk_selection()?);
+        // Disk Info box will start empty, make sure callback is called and it's set.
+        root.call_on_name("disks", |v: &mut SelectView<Block>| v.set_selection(0))
+            .unwrap()(&mut root);
+    } else {
+        // partition_view(&mut root);
+    }
 
     // Global hotkeys
     root.add_global_callback('q', |s| s.quit());
