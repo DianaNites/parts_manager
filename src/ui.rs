@@ -1,10 +1,12 @@
 use crate::util::get_disks;
 use anyhow::{anyhow, Context, Result};
+use byte_unit::Byte;
 use cursive::{
     align::{HAlign, VAlign},
     event::Key,
-    theme::{BaseColor::*, Color::*, PaletteColor::*, Theme},
+    theme::{BaseColor::*, Color::*, Effect, PaletteColor::*, Theme},
     traits::Resizable,
+    view::Nameable,
     views::{Dialog, DummyView, LinearLayout, Panel, SelectView, TextView},
     Cursive,
 };
@@ -44,47 +46,53 @@ fn parts_edit(root: &mut Cursive, disk: &Block) -> Result<()> {
     let mut parts = SelectView::new().h_align(HAlign::Center);
     let p: Vec<Partition> = error(root, || Ok(disk.partitions()?))?;
     for p in p {
-        let start = error(root, || Ok(p.start()?))?;
-        let size = error(root, || Ok(p.size()?))?;
         let s = format!(
-            "{} ({}) {} {} {} {}",
+            "Partition {} (/dev/{})",
             error(root, || Ok(p.number()?))?,
             p.name(),
-            start,
-            start + size,
-            size,
-            "Unknown"
         );
         parts.add_item(s, p);
     }
     parts.sort_by_label();
-    //
-    let select = Panel::new(
-        LinearLayout::vertical()
-            .child(
-                LinearLayout::horizontal()
-                    .child(TextView::new("Partition (device)"))
-                    .child(DummyView)
-                    .child(TextView::new("Start (sectors)"))
-                    .child(DummyView)
-                    .child(TextView::new("End (sectors)"))
-                    .child(DummyView)
-                    .child(TextView::new("Size"))
-                    .child(DummyView)
-                    .child(TextView::new("Type")),
-            )
-            .child(parts
-                // LinearLayout::vertical()
-                //     .child(TextView::new("1 (sda1)"))
-                //     .child(TextView::new("1024"))
-                //     .child(TextView::new("2048"))
-                //     .child(TextView::new("1 MiB"))
-                //     .child(TextView::new("Unknown")),
-            ),
+    parts.set_on_select(|root: &mut Cursive, part: &Partition| {
+        root.call_on_name("start", |v: &mut TextView| {
+            v.set_content(format!("Start: {} bytes", part.start().unwrap_or(0)));
+        });
+        root.call_on_name("end", |v: &mut TextView| {
+            v.set_content(format!(
+                "End: {} bytes",
+                part.start().unwrap_or(0) + part.size().unwrap_or(0)
+            ));
+        });
+        root.call_on_name("size", |v: &mut TextView| {
+            v.set_content(format!(
+                "Size: {}",
+                Byte::from_bytes(part.size().unwrap_or(0).into()).get_appropriate_unit(true)
+            ));
+        });
+    });
+    let info_box = Panel::new(
+        LinearLayout::vertical() //
+            .child(TextView::empty().with_name("start"))
+            .child(TextView::empty().with_name("end"))
+            .child(TextView::empty().with_name("size")),
     )
     .full_screen();
     //
+    let select = Panel::new(
+        LinearLayout::vertical()
+            .child(parts.with_name("parts"))
+            .child(info_box),
+    )
+    .title(format!("Partition Selection (Disk /dev/{})", disk.name()))
+    .title_position(HAlign::Left)
+    .full_screen();
+    //
     root.add_fullscreen_layer(select);
+    // Unwrap is okay, failure indicates a bug
+    root.call_on_name("parts", |v: &mut SelectView<Partition>| v.set_selection(0))
+        .unwrap()(root);
+    //
     Ok(())
 }
 
@@ -97,11 +105,6 @@ fn disk_selection(root: &mut Cursive) -> Result<()> {
     //
     let select = Panel::new(
         LinearLayout::vertical()
-            .child(TextView::new(format!(
-                "Parts {}, {}",
-                std::env!("CARGO_PKG_VERSION"),
-                std::env!("CARGO_PKG_DESCRIPTION")
-            )))
             .child(TextView::new("Select A Disk").h_align(HAlign::Center))
             .child(DummyView)
             .child(disks)
@@ -112,6 +115,12 @@ fn disk_selection(root: &mut Cursive) -> Result<()> {
                     .full_screen(),
             ),
     )
+    .title(format!(
+        "Parts {}, {}.",
+        std::env!("CARGO_PKG_VERSION"),
+        std::env!("CARGO_PKG_DESCRIPTION")
+    ))
+    .title_position(HAlign::Left)
     .full_screen();
 
     root.add_fullscreen_layer(select);
