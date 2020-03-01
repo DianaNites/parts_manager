@@ -59,7 +59,7 @@ fn partition_view(root: &mut Cursive, dev: &Block) {
     fn imp(dev: &Block) -> Result<impl View> {
         let f = dev
             .open()?
-            .ok_or(anyhow!("Device file for `{}` missing", dev.name()))?;
+            .ok_or_else(|| anyhow!("Device file for `{}` missing", dev.name()))?;
         let gpt = Gpt::from_reader(f, BlockSize(dev.logical_block_size()?))?;
         // FIXME: Terrible hack.
         let gpt = Box::leak(Box::new(gpt));
