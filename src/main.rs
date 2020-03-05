@@ -9,7 +9,10 @@ use cursive::{
     Cursive,
 };
 use linapi::system::devices::block::Block;
-use parts::{types::BlockSize, Gpt};
+use parts::{
+    types::{BlockSize, ByteSize},
+    Gpt,
+};
 use std::path::PathBuf;
 use structopt::{clap::AppSettings, StructOpt};
 
@@ -60,7 +63,11 @@ fn partition_view(root: &mut Cursive, dev: &Block) {
         let f = dev
             .open()?
             .ok_or_else(|| anyhow!("Device file for `{}` missing", dev.name()))?;
-        let gpt = Gpt::from_reader(f, BlockSize(dev.logical_block_size()?))?;
+        let gpt = Gpt::from_reader(
+            f,
+            BlockSize(dev.logical_block_size()?),
+            ByteSize::from_bytes(dev.size()?),
+        )?;
         // FIXME: Terrible hack.
         let gpt = Box::leak(Box::new(gpt));
         let parts = gpt.partitions();
