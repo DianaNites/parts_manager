@@ -61,14 +61,6 @@ fn main() -> Result<()> {
                 .unwrap()(&mut root);
         }
     }
-    // if args.device.is_none() {
-    //     root.add_fullscreen_layer(disk_selection()?);
-    //     // Disk Info box will start empty, make sure callback is called and it's
-    // set.     root.call_on_name("disks", |v: &mut SelectView<Block>|
-    // v.set_selection(0))         .unwrap()(&mut root);
-    // } else {
-    //     // partition_view(&mut root);
-    // }
 
     // Global hotkeys
     root.add_global_callback('q', |s| s.quit());
