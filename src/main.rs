@@ -13,7 +13,7 @@ use parts::{
     types::{BlockSize, ByteSize},
     Gpt,
 };
-use std::path::PathBuf;
+use std::{fs, path::PathBuf};
 use structopt::{clap::AppSettings, StructOpt};
 
 #[derive(StructOpt)]
@@ -58,56 +58,36 @@ fn info_box_panel<V: View, BV: IntoBoxedView + 'static>(
     panel(title, l.full_screen())
 }
 
-fn partition_view(root: &mut Cursive, dev: &Block) {
-    fn imp(dev: &Block) -> Result<impl View> {
-        let f = dev
-            .open()?
-            .ok_or_else(|| anyhow!("Device file for `{}` missing", dev.name()))?;
-        let gpt = Gpt::from_reader(
-            f,
-            BlockSize(dev.logical_block_size()?),
-            ByteSize::from_bytes(dev.size()?),
-        )?;
-        // FIXME: Terrible hack.
-        let gpt = Box::leak(Box::new(gpt));
-        let parts = gpt.partitions();
-        let mut parts_view = selection();
-        for (i, part) in parts.iter().enumerate() {
-            let label = format!("Partition {}", i);
-            parts_view.add_item(label, part);
-        }
-        // TODO: on_select
-        let info = vec![
-            TextView::empty().with_name("part_name"),
-            TextView::empty().with_name("part_uuid"),
-        ];
-        //
-        let parts = info_box_panel(
-            &format!("Partitions ({})", dev.name()),
-            parts_view.with_name("parts").full_screen(),
-            info,
-            None,
-        );
-        Ok(parts)
-    };
-    match imp(dev).with_context(|| {
-        format!(
-            "Couldn't open device: `{}`\nPath: {}",
-            dev.name(),
-            dev.dev_path()
-                .unwrap_or_default()
-                .unwrap_or_default()
-                .display()
-        )
-    }) {
-        Ok(v) => {
-            root.add_fullscreen_layer(v);
-        }
-        Err(e) => {
-            let dialog = Dialog::info(format!("{:?}", e)).title("Error");
-            root.add_layer(dialog);
-        }
-    };
+fn partition_view(
+    file: fs::File,
+    logical_block_size: u64,
+    size: u64,
+    name: &str,
+) -> Result<impl View> {
+    let gpt = Gpt::from_reader(
+        file,
+        BlockSize(logical_block_size),
+        ByteSize::from_bytes(size),
+    )?;
+    let parts = gpt.partitions();
+    let mut parts_view = selection();
+    for (i, part) in parts.iter().enumerate() {
+        let label = format!("Partition {}", i);
+        parts_view.add_item(label, *part);
+    }
+    // TODO: on_select
+    let info = vec![
+        TextView::empty().with_name("part_name"),
+        TextView::empty().with_name("part_uuid"),
+    ];
+    //
+    let parts = info_box_panel(
+        &format!("Partitions ({})", name),
+        parts_view.with_name("parts").full_screen(),
+        info,
+        None,
+    );
+    Ok(parts)
 }
 
 fn disk_selection() -> Result<impl View> {
@@ -142,7 +122,62 @@ fn disk_selection() -> Result<impl View> {
         .unwrap();
     });
 
-    disks_view.set_on_submit(partition_view);
+    disks_view.set_on_submit(|root, dev| {
+        fn imp(dev: &Block) -> Result<impl View> {
+            let f = dev
+                .open()?
+                .ok_or_else(|| anyhow!("Device file for `{}` missing", dev.name()))?;
+            partition_view(f, dev.logical_block_size()?, dev.size()?, dev.name())
+        }
+        match imp(dev).with_context(|| {
+            format!(
+                "Couldn't open device: `{}`\nPath: {}",
+                dev.name(),
+                dev.dev_path()
+                    .unwrap_or_default()
+                    .unwrap_or_default()
+                    .display()
+            )
+        }) {
+            Ok(v) => {
+                root.add_fullscreen_layer(v);
+            }
+            Err(e) => {
+                let dev = dev.clone();
+                let dialog = Dialog::info(format!("{:?}", e)).title("Error").button(
+                    "Create New Gpt",
+                    move |root| {
+                        let dev = dev.clone();
+                        let dialog = Dialog::new()
+                    .content(TextView::new(
+                        "Create new GPT Label?\nThis will overwrite any existing content on disk",
+                    ))
+                    .title("Are you sure?")
+                    .button("Yes", move |root| {
+                        fn imp(dev: &Block) -> Result<()> {
+                            let gpt = Gpt::new();
+                            Ok(gpt.to_writer(
+                                dev.open()?.unwrap(),
+                                dev.logical_block_size()?.into(),
+                                ByteSize::from_bytes(dev.size()?),
+                            )?)
+                        }
+                        match imp(&dev) {
+                            Ok(_) => (),
+                            Err(e) => {
+                                let dialog = Dialog::info(format!("{:?}", e)).title("Error");
+                                root.add_layer(dialog);
+                            }
+                        }
+                    })
+                    .dismiss_button("No");
+                        root.add_layer(dialog);
+                    },
+                );
+                root.add_layer(dialog);
+            }
+        };
+    });
 
     let disks = info_box_panel(
         "Disks",
