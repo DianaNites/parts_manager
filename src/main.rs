@@ -1,11 +1,14 @@
-use anyhow::Result;
+use anyhow::{anyhow, Result};
 use cursive::{
     theme::{BaseColor::*, Color::*, PaletteColor::*},
     views::SelectView,
     Cursive,
 };
+use linapi::system::devices::block::{Block, Error};
 use parts::{
     types::{BlockSize, ByteSize},
+    uuid::Uuid,
+    Gpt,
     Partition,
 };
 use std::{fs, path::PathBuf};
@@ -24,8 +27,23 @@ struct Args {
     device: PathBuf,
 
     /// Logical Block Size to use. Overrides autodetection from `device`.
-    #[structopt(long)]
+    #[structopt(short, long)]
     block: Option<u64>,
+
+    #[structopt(subcommand)]
+    cmd: Commands,
+}
+
+#[derive(Debug, StructOpt)]
+enum Commands {
+    /// Create a new GPT Label
+    Create {
+        /// Use this specific UUID instead of generating a new one.
+        ///
+        /// WARNING: Gpt UUID's must be unique.
+        /// Only use this if you know what you're doing.
+        uuid: Option<Uuid>,
+    },
 }
 
 fn interactive() -> Result<()> {
@@ -55,11 +73,52 @@ fn main() -> Result<()> {
     let args: Args = Args::from_args();
     //
     let path = args.device;
-    let block_size = BlockSize(args.block.unwrap());
-    let disk_size = ByteSize::from_bytes(fs::metadata(&path).unwrap().len());
-    let name = path.file_name().unwrap().to_str().unwrap().to_owned();
-    //
-    let data = Data::from_path(path, name, block_size, disk_size)?;
+    let block = match Block::from_dev(&path) {
+        Ok(block) => Some(block),
+        Err(Error::Invalid) => None,
+        Err(e) => return Err(e.into()),
+    };
+    dbg!(&block);
+    let block_size = match args.block {
+        Some(s) => s,
+        None => block
+            .as_ref()
+            .map(|b| b.logical_block_size())
+            .ok_or_else(|| anyhow!("Couldn't automatically logical block size"))??,
+    };
+    dbg!(block_size);
+    let file_size = match block.as_ref() {
+        Some(block) => block.size()?,
+        None => fs::metadata(&path)?.len(),
+    };
+    dbg!(file_size);
+    let name = match block.as_ref() {
+        Some(block) => block.name().to_owned(),
+        None => path
+            .file_name()
+            .ok_or_else(|| anyhow!("Missing filename"))?
+            .to_str()
+            .ok_or_else(|| anyhow!("Invalid UTF-8 in filename"))?
+            .to_owned(),
+    };
+    dbg!(&name);
+    let block_size = BlockSize(block_size);
+    dbg!(block_size);
+    let disk_size = ByteSize::from_bytes(file_size);
+    dbg!(disk_size);
+    // let gpt = Gpt::from_reader(fs::File::open(path)?, block_size, disk_size)?;
+    // dbg!(&gpt);
+    match args.cmd {
+        Commands::Create { uuid } => {
+            let uuid = uuid.unwrap_or_else(|| Uuid::new_v4());
+            let gpt = Gpt::new();
+            gpt.to_writer(
+                fs::OpenOptions::new().write(true).open(path)?,
+                block_size,
+                disk_size,
+            )?;
+        }
+    }
     //
     Ok(())
 }
