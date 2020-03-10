@@ -10,11 +10,15 @@ use parts::{
     uuid::Uuid,
     Gpt,
     Partition,
+    PartitionBuilder,
+    PartitionType,
 };
 use std::{fs, path::PathBuf};
 use structopt::{clap::AppSettings, StructOpt};
 
+#[allow(dead_code)]
 mod components;
+#[allow(dead_code)]
 mod views;
 
 use views::*;
@@ -37,15 +41,52 @@ struct Args {
 #[derive(Debug, StructOpt)]
 enum Commands {
     /// Create a new GPT Label
+    ///
+    /// WARNING: This WILL IMMEDIATELY overwrite ANY existing Gpt
     Create {
         /// Use this specific UUID instead of generating a new one.
         ///
         /// WARNING: Gpt UUID's must be unique.
         /// Only use this if you know what you're doing.
+        #[structopt(long)]
+        uuid: Option<Uuid>,
+    },
+
+    /// Add a partition to the Gpt.
+    AddPartition {
+        /// Partition start, in bytes.
+        ///
+        /// If not specified, partition starts after last existing partition,
+        /// or at 1 MiB.
+        #[structopt(long)]
+        start: Option<u64>,
+
+        /// Partition end, in bytes. Inclusive.
+        ///
+        /// If not specified, uses remaining space.
+        #[structopt(long)]
+        end: Option<u64>,
+
+        /// Partition type Uuid. Defaults to Linux Filesystem Data
+        #[structopt(short, long, default_value = "0FC63DAF-8483-4772-8E79-3D69D8477DE4")]
+        partition_uuid: Uuid,
+
+        /// Partition size, in bytes. Use this OR `end`.
+        ///
+        /// If not specified, uses remaining space.
+        #[structopt(long, conflicts_with("end"))]
+        size: Option<u64>,
+
+        /// Use this specific UUID instead of generating a new one.
+        ///
+        /// WARNING: Partition UUID's must be unique.
+        /// Only use this if you know what you're doing.
+        #[structopt(long)]
         uuid: Option<Uuid>,
     },
 }
 
+#[allow(dead_code)]
 fn interactive() -> Result<()> {
     let mut root = Cursive::default();
     // Theme
@@ -106,17 +147,47 @@ fn main() -> Result<()> {
     dbg!(block_size);
     let disk_size = ByteSize::from_bytes(file_size);
     dbg!(disk_size);
-    // let gpt = Gpt::from_reader(fs::File::open(path)?, block_size, disk_size)?;
-    // dbg!(&gpt);
     match args.cmd {
         Commands::Create { uuid } => {
-            let uuid = uuid.unwrap_or_else(|| Uuid::new_v4());
-            let gpt = Gpt::new();
+            let uuid = uuid.unwrap_or_else(Uuid::new_v4);
+            let mut gpt = Gpt::new();
             gpt.to_writer(
                 fs::OpenOptions::new().write(true).open(path)?,
                 block_size,
                 disk_size,
             )?;
+        }
+        Commands::AddPartition {
+            start,
+            end,
+            size,
+            partition_uuid,
+            uuid,
+        } => {
+            let mut f = fs::OpenOptions::new().read(true).write(true).open(path)?;
+            let mut gpt = Gpt::from_reader(&mut f, block_size, disk_size)?;
+            // cmd size, or last partition + block_size, or 1 MiB
+            let start = {
+                start.map(ByteSize::from_bytes).unwrap_or_else(|| {
+                    gpt.partitions()
+                        .last()
+                        .map(|p| p.end() + ByteSize::from_bytes(block_size.0))
+                        .unwrap_or_else(|| ByteSize::from_mib(1))
+                })
+            };
+            dbg!(start);
+            let part = PartitionBuilder::new(Uuid::new_v4())
+                .start(start)
+                .partition_type(PartitionType::from_uuid(partition_uuid));
+            let part = match (end, size) {
+                (Some(end), None) => part.end(ByteSize::from_bytes(end)),
+                (None, Some(size)) => part.size(ByteSize::from_bytes(size)),
+                (None, None) => todo!("Remaining"),
+                _ => unreachable!("Clap conflicts prevent this"),
+            };
+            gpt.add_partition(part.finish(block_size))?;
+            //
+            gpt.to_writer(&mut f, block_size, disk_size)?;
         }
     }
     //
