@@ -33,7 +33,7 @@ arg_enum! {
 #[derive(Debug, StructOpt)]
 #[structopt(global_setting(AppSettings::ColoredHelp))]
 struct Args {
-    /// Path to device or file to partition.
+    /// Path to device or file.
     #[structopt(default_value = "/dev/sda")]
     device: PathBuf,
 
