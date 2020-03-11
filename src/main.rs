@@ -6,6 +6,7 @@ use cursive::{
 };
 use linapi::system::devices::block::{Block, Error};
 use parts::{types::*, uuid::Uuid, Gpt, PartitionBuilder, PartitionType};
+use serde::{Deserialize, Serialize};
 use std::{fs, path::PathBuf};
 use structopt::{clap::AppSettings, StructOpt};
 
@@ -82,6 +83,12 @@ enum Commands {
     Dump,
 }
 
+#[derive(Debug, Serialize, Deserialize)]
+struct PartitionInfo {
+    gpt: Gpt,
+    block_size: BlockSize,
+}
+
 #[allow(dead_code)]
 fn interactive() -> Result<()> {
     let mut root = Cursive::default();
@@ -146,7 +153,7 @@ fn main() -> Result<()> {
     match args.cmd {
         Commands::Create { uuid } => {
             let _uuid = uuid.unwrap_or_else(Uuid::new_v4);
-            let gpt = Gpt::new();
+            let gpt: Gpt = Gpt::new(Uuid::new_v4());
             gpt.to_writer(
                 fs::OpenOptions::new().write(true).open(path)?,
                 block_size,
@@ -161,7 +168,7 @@ fn main() -> Result<()> {
             uuid: _,
         } => {
             let mut f = fs::OpenOptions::new().read(true).write(true).open(path)?;
-            let mut gpt = Gpt::from_reader(&mut f, block_size, disk_size)?;
+            let mut gpt: Gpt = Gpt::from_reader(&mut f, block_size, disk_size)?;
             // cmd size, or last partition + block_size, or 1 MiB
             let start = {
                 start.map(Offset).unwrap_or_else(|| {

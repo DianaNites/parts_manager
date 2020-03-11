@@ -8,7 +8,7 @@ use cursive::{
     Cursive,
 };
 use linapi::system::devices::block::Block;
-use parts::{types::*, Gpt, Partition};
+use parts::{types::*, uuid::Uuid, Gpt, Partition};
 use std::{fs, path::PathBuf};
 
 pub fn partition_view(
@@ -17,7 +17,7 @@ pub fn partition_view(
     size: u64,
     name: &str,
 ) -> Result<impl View> {
-    let gpt = Gpt::from_reader(file, BlockSize(logical_block_size), Size::from_bytes(size))?;
+    let gpt: Gpt = Gpt::from_reader(file, BlockSize(logical_block_size), Size::from_bytes(size))?;
     let parts = gpt.partitions();
     let mut parts_view = selection();
     for (i, part) in parts.iter().enumerate() {
@@ -104,7 +104,7 @@ pub fn disk_selection() -> Result<impl View> {
                     .title("Are you sure?")
                     .button("Yes", move |root| {
                         fn imp(dev: &Block) -> Result<()> {
-                            let gpt = Gpt::new();
+                            let gpt: Gpt = Gpt::new(Uuid::new_v4());
                             Ok(gpt.to_writer(
                                 dev.open()?.unwrap(),
                                 dev.logical_block_size()?.into(),
@@ -183,7 +183,7 @@ impl Data {
 }
 
 pub fn part_view(data: &Data) -> Result<impl View> {
-    let gpt = data.gpt.unwrap();
+    let gpt: &Gpt = data.gpt.as_ref().unwrap();
     let name = &data.name;
     //
     let parts = gpt.partitions();
@@ -240,7 +240,7 @@ pub fn disks() -> Result<impl View> {
     disks_view.set_on_select(|root: &mut Cursive, dev: &Data| {
         // Unwraps are okay, if not is a bug.
         root.call_on_name("uuid", |v: &mut TextView| {
-            if let Some(gpt) = dev.gpt {
+            if let Some(gpt) = &dev.gpt {
                 v.set_content(format!("UUID: {}", gpt.uuid()));
             } else {
                 v.set_content(format!("UUID: {}", "Unknown"));
