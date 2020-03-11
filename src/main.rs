@@ -201,6 +201,12 @@ fn add_partition(
     Ok(())
 }
 
+fn dump(format: Format, info: PartitionInfo) -> Result<String> {
+    match format {
+        Format::Json => Ok(serde_json::to_string_pretty(&info)?),
+    }
+}
+
 fn main() -> Result<()> {
     let args: Args = Args::from_args();
     //
@@ -285,18 +291,13 @@ fn main() -> Result<()> {
         }
         Commands::Dump { format } => {
             let gpt: Gpt = Gpt::from_reader(fs::File::open(path)?, block_size, disk_size)?;
-            match format {
-                Format::Json => {
-                    let info = PartitionInfo {
-                        gpt,
-                        block_size,
-                        disk_size,
-                        model,
-                    };
-                    serde_json::to_writer_pretty(std::io::stdout(), &info)?;
-                    //
-                }
-            }
+            let info = PartitionInfo {
+                gpt,
+                block_size,
+                disk_size,
+                model,
+            };
+            dump(format, info)?;
         }
         Commands::Restore {
             format,
