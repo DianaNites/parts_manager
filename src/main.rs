@@ -9,7 +9,7 @@ use parts::{types::*, uuid::Uuid, Gpt, PartitionBuilder, PartitionType};
 use serde::{Deserialize, Serialize};
 use std::{fs, path::PathBuf};
 use structopt::{
-    clap::{arg_enum, AppSettings},
+    clap::{arg_enum, AppSettings, Shell},
     StructOpt,
 };
 
@@ -112,6 +112,13 @@ enum Commands {
         /// Only use this if you know what you're doing.
         #[structopt(short, long, requires("block"))]
         override_block: bool,
+    },
+
+    /// Generate completions to stdout.
+    Complete {
+        /// Shell
+        #[structopt(possible_values(&Shell::variants()), default_value = "fish")]
+        shell: Shell,
     },
 }
 
@@ -274,6 +281,11 @@ fn main() -> Result<()> {
                 )?;
             }
         },
+        Commands::Complete { shell } => {
+            let mut app = Args::clap();
+            let name = app.get_name().to_owned();
+            app.gen_completions_to(name, shell, &mut std::io::stdout());
+        }
     }
     //
     Ok(())
