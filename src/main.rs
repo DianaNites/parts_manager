@@ -163,7 +163,6 @@ fn main() -> Result<()> {
         Err(Error::Invalid) => None,
         Err(e) => return Err(e.into()),
     };
-    dbg!(&block);
     let block_size = match args.block {
         Some(s) => s,
         None => {
@@ -179,13 +178,11 @@ fn main() -> Result<()> {
             }
         }
     };
-    dbg!(block_size);
     let file_size = match block.as_ref() {
         Some(block) => block.size()?,
         None => fs::metadata(&path)?.len(),
     };
-    dbg!(file_size);
-    let name = match block.as_ref() {
+    let _name = match block.as_ref() {
         Some(block) => block.name().to_owned(),
         None => path
             .file_name()
@@ -194,16 +191,12 @@ fn main() -> Result<()> {
             .ok_or_else(|| anyhow!("Invalid UTF-8 in filename"))?
             .to_owned(),
     };
-    dbg!(&name);
     let model = match block.as_ref() {
         Some(block) => block.model()?.unwrap_or_default(),
         None => "".into(),
     };
-    dbg!(&model);
     let block_size = BlockSize(block_size);
-    dbg!(block_size);
     let disk_size = Size::from_bytes(file_size);
-    dbg!(disk_size);
     match args.cmd {
         Commands::Create { uuid } => {
             let _uuid = uuid.unwrap_or_else(Uuid::new_v4);
@@ -232,7 +225,6 @@ fn main() -> Result<()> {
                         .unwrap_or_else(|| Size::from_mib(1).into())
                 })
             };
-            dbg!(start);
             let part = PartitionBuilder::new(Uuid::new_v4())
                 .start(start)
                 .partition_type(PartitionType::from_uuid(partition_uuid));
@@ -256,7 +248,6 @@ fn main() -> Result<()> {
                         disk_size,
                         model,
                     };
-                    dbg!(&info);
                     serde_json::to_writer_pretty(std::io::stdout(), &info)?;
                     //
                 }
@@ -268,7 +259,6 @@ fn main() -> Result<()> {
         } => match format {
             Format::Json => {
                 let info: PartitionInfo = serde_json::from_reader(std::io::stdin())?;
-                dbg!(&info);
                 info.gpt.to_writer(
                     fs::OpenOptions::new().write(true).open(path)?,
                     if override_block {
