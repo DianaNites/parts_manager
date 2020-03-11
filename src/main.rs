@@ -77,6 +77,9 @@ enum Commands {
         #[structopt(long)]
         uuid: Option<Uuid>,
     },
+
+    /// Dump the GPT Label to disk. Writes to stdout
+    Dump,
 }
 
 #[allow(dead_code)]
@@ -181,6 +184,9 @@ fn main() -> Result<()> {
             gpt.add_partition(part.finish(block_size))?;
             //
             gpt.to_writer(&mut f, block_size, disk_size)?;
+        }
+        Commands::Dump => {
+            //
         }
     }
     //
