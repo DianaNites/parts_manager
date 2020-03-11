@@ -7,7 +7,10 @@ use cursive::{
 use linapi::system::devices::block::{Block, Error};
 use parts::{types::*, uuid::Uuid, Gpt, PartitionBuilder, PartitionType};
 use serde::{Deserialize, Serialize};
-use std::{fs, path::PathBuf};
+use std::{
+    fs,
+    path::{Path, PathBuf},
+};
 use structopt::{
     clap::{arg_enum, AppSettings, Shell},
     StructOpt,
@@ -73,7 +76,7 @@ enum Commands {
 
         /// Partition type Uuid. Defaults to Linux Filesystem Data
         #[structopt(short, long, default_value = "0FC63DAF-8483-4772-8E79-3D69D8477DE4")]
-        partition_uuid: Uuid,
+        partition_type: Uuid,
 
         /// Partition size, in bytes. Use this OR `end`.
         ///
@@ -154,6 +157,59 @@ fn interactive() -> Result<()> {
     Ok(())
 }
 
+fn create_table(
+    uuid: Option<Uuid>,
+    path: &Path,
+    block_size: BlockSize,
+    disk_size: Size,
+) -> Result<Gpt> {
+    let uuid = uuid.unwrap_or_else(Uuid::new_v4);
+    let gpt: Gpt = Gpt::new(uuid);
+    gpt.to_writer(
+        fs::OpenOptions::new().write(true).open(path)?,
+        block_size,
+        disk_size,
+    )?;
+    Ok(gpt)
+}
+
+fn add_partition(
+    start: Option<u64>,
+    end: Option<u64>,
+    size: Option<u64>,
+    partition_type: Uuid,
+    path: &Path,
+    block_size: BlockSize,
+    disk_size: Size,
+    uuid: Option<Uuid>,
+) -> Result<Gpt> {
+    let mut f = fs::OpenOptions::new().read(true).write(true).open(path)?;
+    let mut gpt: Gpt = Gpt::from_reader(&mut f, block_size, disk_size)?;
+    // cmd size, or last partition + block_size, or 1 MiB
+    let start = {
+        start.map(Offset).unwrap_or_else(|| {
+            gpt.partitions()
+                .last()
+                .map(|p| (Size::from(p.end()) + block_size).into())
+                .unwrap_or_else(|| Size::from_mib(1).into())
+        })
+    };
+    let part = PartitionBuilder::new(uuid.unwrap_or_else(Uuid::new_v4))
+        .start(start)
+        .partition_type(PartitionType::from_uuid(partition_type));
+    let part = match (end, size) {
+        (Some(end), None) => part.end(Size::from_bytes(end).into()),
+        (None, Some(size)) => part.size(Size::from_bytes(size)),
+        (None, None) => todo!("Remaining"),
+        _ => unreachable!("Clap conflicts prevent this"),
+    };
+    gpt.add_partition(part.finish(block_size))?;
+    //
+    gpt.to_writer(&mut f, block_size, disk_size)?;
+    //
+    Ok(gpt)
+}
+
 fn main() -> Result<()> {
     let args: Args = Args::from_args();
     //
@@ -199,44 +255,25 @@ fn main() -> Result<()> {
     let disk_size = Size::from_bytes(file_size);
     match args.cmd {
         Commands::Create { uuid } => {
-            let _uuid = uuid.unwrap_or_else(Uuid::new_v4);
-            let gpt: Gpt = Gpt::new(Uuid::new_v4());
-            gpt.to_writer(
-                fs::OpenOptions::new().write(true).open(path)?,
-                block_size,
-                disk_size,
-            )?;
+            create_table(uuid, &path, block_size, disk_size)?;
         }
         Commands::AddPartition {
             start,
             end,
             size,
-            partition_uuid,
-            uuid: _,
+            partition_type,
+            uuid,
         } => {
-            let mut f = fs::OpenOptions::new().read(true).write(true).open(path)?;
-            let mut gpt: Gpt = Gpt::from_reader(&mut f, block_size, disk_size)?;
-            // cmd size, or last partition + block_size, or 1 MiB
-            let start = {
-                start.map(Offset).unwrap_or_else(|| {
-                    gpt.partitions()
-                        .last()
-                        .map(|p| (Size::from(p.end()) + block_size).into())
-                        .unwrap_or_else(|| Size::from_mib(1).into())
-                })
-            };
-            let part = PartitionBuilder::new(Uuid::new_v4())
-                .start(start)
-                .partition_type(PartitionType::from_uuid(partition_uuid));
-            let part = match (end, size) {
-                (Some(end), None) => part.end(Size::from_bytes(end).into()),
-                (None, Some(size)) => part.size(Size::from_bytes(size)),
-                (None, None) => todo!("Remaining"),
-                _ => unreachable!("Clap conflicts prevent this"),
-            };
-            gpt.add_partition(part.finish(block_size))?;
-            //
-            gpt.to_writer(&mut f, block_size, disk_size)?;
+            add_partition(
+                start,
+                end,
+                size,
+                partition_type,
+                &path,
+                block_size,
+                disk_size,
+                uuid,
+            )?;
         }
         Commands::Dump { format } => {
             let gpt: Gpt = Gpt::from_reader(fs::File::open(path)?, block_size, disk_size)?;
