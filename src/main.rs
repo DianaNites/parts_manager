@@ -42,6 +42,8 @@ struct Args {
     device: PathBuf,
 
     /// Logical Block Size to use. Overrides autodetection from `device`.
+    ///
+    /// Ignored for `interactive`.
     #[structopt(short, long, global(true))]
     block: Option<u64>,
 
