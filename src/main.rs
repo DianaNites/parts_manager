@@ -176,17 +176,14 @@ fn create_table(
 }
 
 fn add_partition(
+    gpt: &mut Gpt,
     start: Option<u64>,
     end: Option<u64>,
     size: Option<u64>,
     partition_type: Uuid,
-    path: &Path,
     block_size: BlockSize,
-    disk_size: Size,
     uuid: Option<Uuid>,
-) -> Result<Gpt> {
-    let mut f = fs::OpenOptions::new().read(true).write(true).open(path)?;
-    let mut gpt: Gpt = Gpt::from_reader(&mut f, block_size, disk_size)?;
+) -> Result<()> {
     // cmd size, or last partition + block_size, or 1 MiB
     let start = {
         start.map(Offset).unwrap_or_else(|| {
@@ -207,9 +204,7 @@ fn add_partition(
     };
     gpt.add_partition(part.finish(block_size))?;
     //
-    gpt.to_writer(&mut f, block_size, disk_size)?;
-    //
-    Ok(gpt)
+    Ok(())
 }
 
 fn main() -> Result<()> {
@@ -266,16 +261,10 @@ fn main() -> Result<()> {
             partition_type,
             uuid,
         } => {
-            add_partition(
-                start,
-                end,
-                size,
-                partition_type,
-                &path,
-                block_size,
-                disk_size,
-                uuid,
-            )?;
+            let mut f = fs::OpenOptions::new().read(true).write(true).open(&path)?;
+            let mut gpt: Gpt = Gpt::from_reader(&mut f, block_size, disk_size)?;
+            add_partition(&mut gpt, start, end, size, partition_type, block_size, uuid)?;
+            gpt.to_writer(&mut f, block_size, disk_size)?;
         }
         Commands::Dump { format } => {
             let gpt: Gpt = Gpt::from_reader(fs::File::open(path)?, block_size, disk_size)?;
