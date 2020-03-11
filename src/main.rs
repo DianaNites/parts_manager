@@ -5,14 +5,7 @@ use cursive::{
     Cursive,
 };
 use linapi::system::devices::block::{Block, Error};
-use parts::{
-    types::{BlockSize, ByteSize},
-    uuid::Uuid,
-    Gpt,
-    Partition,
-    PartitionBuilder,
-    PartitionType,
-};
+use parts::{types::*, uuid::Uuid, Gpt, PartitionBuilder, PartitionType};
 use std::{fs, path::PathBuf};
 use structopt::{clap::AppSettings, StructOpt};
 
@@ -145,12 +138,12 @@ fn main() -> Result<()> {
     dbg!(&name);
     let block_size = BlockSize(block_size);
     dbg!(block_size);
-    let disk_size = ByteSize::from_bytes(file_size);
+    let disk_size = Size::from_bytes(file_size);
     dbg!(disk_size);
     match args.cmd {
         Commands::Create { uuid } => {
-            let uuid = uuid.unwrap_or_else(Uuid::new_v4);
-            let mut gpt = Gpt::new();
+            let _uuid = uuid.unwrap_or_else(Uuid::new_v4);
+            let gpt = Gpt::new();
             gpt.to_writer(
                 fs::OpenOptions::new().write(true).open(path)?,
                 block_size,
@@ -162,17 +155,17 @@ fn main() -> Result<()> {
             end,
             size,
             partition_uuid,
-            uuid,
+            uuid: _,
         } => {
             let mut f = fs::OpenOptions::new().read(true).write(true).open(path)?;
             let mut gpt = Gpt::from_reader(&mut f, block_size, disk_size)?;
             // cmd size, or last partition + block_size, or 1 MiB
             let start = {
-                start.map(ByteSize::from_bytes).unwrap_or_else(|| {
+                start.map(Offset).unwrap_or_else(|| {
                     gpt.partitions()
                         .last()
-                        .map(|p| p.end() + ByteSize::from_bytes(block_size.0))
-                        .unwrap_or_else(|| ByteSize::from_mib(1))
+                        .map(|p| (Size::from(p.end()) + block_size).into())
+                        .unwrap_or_else(|| Size::from_mib(1).into())
                 })
             };
             dbg!(start);
@@ -180,8 +173,8 @@ fn main() -> Result<()> {
                 .start(start)
                 .partition_type(PartitionType::from_uuid(partition_uuid));
             let part = match (end, size) {
-                (Some(end), None) => part.end(ByteSize::from_bytes(end)),
-                (None, Some(size)) => part.size(ByteSize::from_bytes(size)),
+                (Some(end), None) => part.end(Size::from_bytes(end).into()),
+                (None, Some(size)) => part.size(Size::from_bytes(size)),
                 (None, None) => todo!("Remaining"),
                 _ => unreachable!("Clap conflicts prevent this"),
             };

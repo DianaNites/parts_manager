@@ -8,11 +8,7 @@ use cursive::{
     Cursive,
 };
 use linapi::system::devices::block::Block;
-use parts::{
-    types::{BlockSize, ByteSize},
-    Gpt,
-    Partition,
-};
+use parts::{types::*, Gpt, Partition};
 use std::{fs, path::PathBuf};
 
 pub fn partition_view(
@@ -21,11 +17,7 @@ pub fn partition_view(
     size: u64,
     name: &str,
 ) -> Result<impl View> {
-    let gpt = Gpt::from_reader(
-        file,
-        BlockSize(logical_block_size),
-        ByteSize::from_bytes(size),
-    )?;
+    let gpt = Gpt::from_reader(file, BlockSize(logical_block_size), Size::from_bytes(size))?;
     let parts = gpt.partitions();
     let mut parts_view = selection();
     for (i, part) in parts.iter().enumerate() {
@@ -116,7 +108,7 @@ pub fn disk_selection() -> Result<impl View> {
                             Ok(gpt.to_writer(
                                 dev.open()?.unwrap(),
                                 dev.logical_block_size()?.into(),
-                                ByteSize::from_bytes(dev.size()?),
+                                Size::from_bytes(dev.size()?),
                             )?)
                         }
                         match imp(&dev) {
@@ -152,7 +144,7 @@ pub struct Data {
     pub path: PathBuf,
     pub name: String,
     pub block_size: BlockSize,
-    pub size: ByteSize,
+    pub size: Size,
     pub gpt: Option<Gpt>,
 }
 
@@ -163,7 +155,7 @@ impl Data {
             .dev_path()?
             .ok_or_else(|| anyhow!("Device file for `{}` missing", dev.name()))?;
         let block_size = BlockSize(dev.logical_block_size()?);
-        let size = ByteSize::from_bytes(dev.size()?);
+        let size = Size::from_bytes(dev.size()?);
         Self::from_path(path, dev.name().to_owned(), block_size, size)
     }
 
@@ -171,7 +163,7 @@ impl Data {
         path: PathBuf,
         name: String,
         block_size: BlockSize,
-        size: ByteSize,
+        size: Size,
     ) -> Result<Self> {
         let gpt = {
             let f = fs::File::open(&path);
