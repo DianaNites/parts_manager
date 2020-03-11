@@ -34,15 +34,24 @@ arg_enum! {
 #[structopt(global_setting(AppSettings::ColoredHelp))]
 struct Args {
     /// Path to device or file.
-    #[structopt(default_value = "/dev/sda")]
+    #[structopt(
+        default_value = "/dev/sda",
+        default_value_if("interactive", None, "Auto"),
+        required_unless("interactive")
+    )]
     device: PathBuf,
 
     /// Logical Block Size to use. Overrides autodetection from `device`.
     #[structopt(short, long, global(true))]
     block: Option<u64>,
 
+    /// Use an interactive TUI interface.
+    /// If `device` is not specified, displays a selection.
+    #[structopt(short, long, conflicts_with("Complete"))]
+    interactive: bool,
+
     #[structopt(subcommand)]
-    cmd: Commands,
+    cmd: Option<Commands>,
 }
 
 #[derive(Debug, StructOpt)]
@@ -207,6 +216,10 @@ fn dump(format: Format, info: PartitionInfo) -> Result<String> {
     }
 }
 
+fn get_info() {
+    //
+}
+
 fn main() -> Result<()> {
     let args: Args = Args::from_args();
     //
@@ -219,7 +232,7 @@ fn main() -> Result<()> {
     let block_size = match args.block {
         Some(s) => s,
         None => {
-            if let Commands::Restore { .. } = args.cmd {
+            if let Some(Commands::Restore { .. }) = args.cmd {
                 0
             } else {
                 block
@@ -250,79 +263,84 @@ fn main() -> Result<()> {
     };
     let block_size = BlockSize(block_size);
     let disk_size = Size::from_bytes(file_size);
-    match args.cmd {
-        Commands::Create { uuid } => {
-            create_table(uuid, &path, block_size, disk_size)?;
-        }
-        Commands::AddPartition {
-            start,
-            end,
-            size,
-            partition_type,
-            uuid,
-        } => {
-            let mut f = fs::OpenOptions::new().read(true).write(true).open(&path)?;
-            let mut gpt: Gpt = Gpt::from_reader(&mut f, block_size, disk_size)?;
-            // cmd size, or last partition + block_size, or 1 MiB
-            let start = {
-                start.map(Offset).unwrap_or_else(|| {
-                    gpt.partitions()
-                        .last()
-                        .map(|p| (Size::from(p.end()) + block_size).into())
-                        .unwrap_or_else(|| Size::from_mib(1).into())
-                })
-            };
-            let end = match (end, size) {
-                (Some(end), None) => End::Abs(Offset(end)),
-                (None, Some(size)) => End::Rel(Size::from_bytes(size)),
-                (None, None) => todo!("Remaining"),
-                _ => unreachable!("Clap conflicts prevent this"),
-            };
-            //
-            add_partition(
-                &mut gpt,
+    if let Some(cmd) = args.cmd {
+        match cmd {
+            Commands::Create { uuid } => {
+                create_table(uuid, &path, block_size, disk_size)?;
+            }
+            Commands::AddPartition {
                 start,
                 end,
+                size,
                 partition_type,
-                block_size,
-                uuid.unwrap_or_else(Uuid::new_v4),
-            )?;
-            gpt.to_writer(&mut f, block_size, disk_size)?;
-        }
-        Commands::Dump { format } => {
-            let gpt: Gpt = Gpt::from_reader(fs::File::open(path)?, block_size, disk_size)?;
-            let info = PartitionInfo {
-                gpt,
-                block_size,
-                disk_size,
-                model,
-            };
-            dump(format, info)?;
-        }
-        Commands::Restore {
-            format,
-            override_block,
-        } => match format {
-            Format::Json => {
-                let info: PartitionInfo = serde_json::from_reader(std::io::stdin())?;
-                info.gpt.to_writer(
-                    fs::OpenOptions::new().write(true).open(path)?,
-                    if override_block {
-                        assert_ne!(block_size.0, 0);
-                        block_size
-                    } else {
-                        info.block_size
-                    },
-                    info.disk_size,
+                uuid,
+            } => {
+                let mut f = fs::OpenOptions::new().read(true).write(true).open(&path)?;
+                let mut gpt: Gpt = Gpt::from_reader(&mut f, block_size, disk_size)?;
+                // cmd size, or last partition + block_size, or 1 MiB
+                let start = {
+                    start.map(Offset).unwrap_or_else(|| {
+                        gpt.partitions()
+                            .last()
+                            .map(|p| (Size::from(p.end()) + block_size).into())
+                            .unwrap_or_else(|| Size::from_mib(1).into())
+                    })
+                };
+                let end = match (end, size) {
+                    (Some(end), None) => End::Abs(Offset(end)),
+                    (None, Some(size)) => End::Rel(Size::from_bytes(size)),
+                    (None, None) => todo!("Remaining"),
+                    _ => unreachable!("Clap conflicts prevent this"),
+                };
+                //
+                add_partition(
+                    &mut gpt,
+                    start,
+                    end,
+                    partition_type,
+                    block_size,
+                    uuid.unwrap_or_else(Uuid::new_v4),
                 )?;
+                gpt.to_writer(&mut f, block_size, disk_size)?;
             }
-        },
-        Commands::Complete { shell } => {
-            let mut app = Args::clap();
-            let name = app.get_name().to_owned();
-            app.gen_completions_to(name, shell, &mut std::io::stdout());
+            Commands::Dump { format } => {
+                let gpt: Gpt = Gpt::from_reader(fs::File::open(path)?, block_size, disk_size)?;
+                let info = PartitionInfo {
+                    gpt,
+                    block_size,
+                    disk_size,
+                    model,
+                };
+                dump(format, info)?;
+            }
+            Commands::Restore {
+                format,
+                override_block,
+            } => match format {
+                Format::Json => {
+                    let info: PartitionInfo = serde_json::from_reader(std::io::stdin())?;
+                    info.gpt.to_writer(
+                        fs::OpenOptions::new().write(true).open(path)?,
+                        if override_block {
+                            assert_ne!(block_size.0, 0);
+                            block_size
+                        } else {
+                            info.block_size
+                        },
+                        info.disk_size,
+                    )?;
+                }
+            },
+            Commands::Complete { shell } => {
+                let mut app = Args::clap();
+                let name = app.get_name().to_owned();
+                app.gen_completions_to(name, shell, &mut std::io::stdout());
+            }
         }
+    } else {
+        //
     }
+
     //
     Ok(())
 }
