@@ -144,30 +144,6 @@ struct PartitionInfo {
     model: String,
 }
 
-#[allow(dead_code)]
-fn interactive() -> Result<()> {
-    let mut root = Cursive::default();
-    // Theme
-    let mut theme = root.current_theme().clone();
-    theme.palette[Background] = TerminalDefault;
-    theme.palette[View] = TerminalDefault;
-    theme.palette[Primary] = Dark(White);
-    theme.palette[Tertiary] = Dark(White);
-    root.set_theme(theme);
-
-    root.add_fullscreen_layer(disks()?);
-    // Disk Info box will start empty, make sure callback is called and it's set.
-    root.call_on_name("disks", |v: &mut SelectView<Data>| v.set_selection(0))
-        .unwrap()(&mut root);
-
-    // Global hotkeys
-    root.add_global_callback('q', |s| s.quit());
-    root.add_global_callback('h', |_| todo!("Help menu"));
-    //
-    root.run();
-    Ok(())
-}
-
 fn create_table(
     uuid: Option<Uuid>,
     path: &Path,
@@ -218,6 +194,30 @@ fn dump(format: Format, info: PartitionInfo) -> Result<String> {
 
 fn get_info() {
     //
+}
+
+#[allow(dead_code)]
+fn interactive() -> Result<()> {
+    let mut root = Cursive::default();
+    // Theme
+    let mut theme = root.current_theme().clone();
+    theme.palette[Background] = TerminalDefault;
+    theme.palette[View] = TerminalDefault;
+    theme.palette[Primary] = Dark(White);
+    theme.palette[Tertiary] = Dark(White);
+    root.set_theme(theme);
+
+    root.add_fullscreen_layer(disks()?);
+    // Disk Info box will start empty, make sure callback is called and it's set.
+    root.call_on_name("disks", |v: &mut SelectView<Data>| v.set_selection(0))
+        .unwrap()(&mut root);
+
+    // Global hotkeys
+    root.add_global_callback('q', |s| s.quit());
+    root.add_global_callback('h', |_| todo!("Help menu"));
+    //
+    root.run();
+    Ok(())
 }
 
 fn main() -> Result<()> {
