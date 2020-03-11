@@ -69,6 +69,7 @@ enum Commands {
         start: Option<u64>,
 
         /// Partition end, in bytes. Inclusive.
+        /// Rounds up to nearest block_size.
         ///
         /// If not specified, uses remaining space.
         #[structopt(long)]
@@ -79,6 +80,7 @@ enum Commands {
         partition_type: Uuid,
 
         /// Partition size, in bytes. Use this OR `end`.
+        /// Rounds up to nearest block_size.
         ///
         /// If not specified, uses remaining space.
         #[structopt(long, conflicts_with("end"))]
