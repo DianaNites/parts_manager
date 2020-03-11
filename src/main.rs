@@ -35,7 +35,7 @@ struct Args {
     device: PathBuf,
 
     /// Logical Block Size to use. Overrides autodetection from `device`.
-    #[structopt(short, long)]
+    #[structopt(short, long, global(true))]
     block: Option<u64>,
 
     #[structopt(subcommand)]
@@ -44,7 +44,7 @@ struct Args {
 
 #[derive(Debug, StructOpt)]
 enum Commands {
-    /// Create a new GPT Label
+    /// Create a new GPT Label.
     ///
     /// WARNING: This WILL IMMEDIATELY overwrite ANY existing Gpt
     Create {
@@ -89,11 +89,29 @@ enum Commands {
         uuid: Option<Uuid>,
     },
 
-    /// Dump the GPT Label to disk. Writes to stdout
+    /// Dump the GPT Label to disk. Writes to stdout.
     Dump {
         /// Format to output in
         #[structopt(possible_values(&Format::variants()), default_value = "Json")]
         format: Format,
+    },
+
+    /// Restore A GPT Label from a previously saved dump to `device`. Reads from
+    /// stdin.
+    Restore {
+        /// Format of dump.
+        #[structopt(possible_values(&Format::variants()), default_value = "Json")]
+        format: Format,
+
+        /// Whether the `block` option should override the block size in the
+        /// dump.
+        ///
+        /// This flag can be useful if you want to restore the Gpt to a
+        /// different disk that has a different block size.
+        ///
+        /// Only use this if you know what you're doing.
+        #[structopt(short, long, requires("block"))]
+        override_block: bool,
     },
 }
 
@@ -141,10 +159,18 @@ fn main() -> Result<()> {
     dbg!(&block);
     let block_size = match args.block {
         Some(s) => s,
-        None => block
-            .as_ref()
-            .map(|b| b.logical_block_size())
-            .ok_or_else(|| anyhow!("Couldn't automatically logical block size"))??,
+        None => {
+            if let Commands::Restore { .. } = args.cmd {
+                0
+            } else {
+                block
+                    .as_ref()
+                    .map(|b| b.logical_block_size())
+                    .ok_or_else(|| {
+                        anyhow!("Couldn't automatically determine logical block size")
+                    })??
+            }
+        }
     };
     dbg!(block_size);
     let file_size = match block.as_ref() {
@@ -229,6 +255,25 @@ fn main() -> Result<()> {
                 }
             }
         }
+        Commands::Restore {
+            format,
+            override_block,
+        } => match format {
+            Format::Json => {
+                let info: PartitionInfo = serde_json::from_reader(std::io::stdin())?;
+                dbg!(&info);
+                info.gpt.to_writer(
+                    fs::OpenOptions::new().write(true).open(path)?,
+                    if override_block {
+                        assert_ne!(block_size.0, 0);
+                        block_size
+                    } else {
+                        info.block_size
+                    },
+                    info.disk_size,
+                )?;
+            }
+        },
     }
     //
     Ok(())
