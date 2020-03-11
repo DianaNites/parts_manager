@@ -8,7 +8,10 @@ use linapi::system::devices::block::{Block, Error};
 use parts::{types::*, uuid::Uuid, Gpt, PartitionBuilder, PartitionType};
 use serde::{Deserialize, Serialize};
 use std::{fs, path::PathBuf};
-use structopt::{clap::AppSettings, StructOpt};
+use structopt::{
+    clap::{arg_enum, AppSettings},
+    StructOpt,
+};
 
 #[allow(dead_code)]
 mod components;
@@ -16,6 +19,13 @@ mod components;
 mod views;
 
 use views::*;
+
+arg_enum! {
+    #[derive(Debug)]
+    enum Format {
+        Json,
+    }
+}
 
 #[derive(Debug, StructOpt)]
 #[structopt(global_setting(AppSettings::ColoredHelp))]
@@ -80,13 +90,19 @@ enum Commands {
     },
 
     /// Dump the GPT Label to disk. Writes to stdout
-    Dump,
+    Dump {
+        /// Format to output in
+        #[structopt(possible_values(&Format::variants()), default_value = "Json")]
+        format: Format,
+    },
 }
 
 #[derive(Debug, Serialize, Deserialize)]
 struct PartitionInfo {
     gpt: Gpt,
     block_size: BlockSize,
+    disk_size: Size,
+    model: String,
 }
 
 #[allow(dead_code)]
@@ -146,6 +162,11 @@ fn main() -> Result<()> {
             .to_owned(),
     };
     dbg!(&name);
+    let model = match block.as_ref() {
+        Some(block) => block.model()?.unwrap_or_default(),
+        None => "".into(),
+    };
+    dbg!(&model);
     let block_size = BlockSize(block_size);
     dbg!(block_size);
     let disk_size = Size::from_bytes(file_size);
@@ -192,8 +213,21 @@ fn main() -> Result<()> {
             //
             gpt.to_writer(&mut f, block_size, disk_size)?;
         }
-        Commands::Dump => {
-            //
+        Commands::Dump { format } => {
+            let gpt: Gpt = Gpt::from_reader(fs::File::open(path)?, block_size, disk_size)?;
+            match format {
+                Format::Json => {
+                    let info = PartitionInfo {
+                        gpt,
+                        block_size,
+                        disk_size,
+                        model,
+                    };
+                    dbg!(&info);
+                    serde_json::to_writer_pretty(std::io::stdout(), &info)?;
+                    //
+                }
+            }
         }
     }
     //
