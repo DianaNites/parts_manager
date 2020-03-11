@@ -24,13 +24,13 @@ mod views;
 use views::*;
 
 arg_enum! {
-    #[derive(Debug)]
+    #[derive(Debug, Clone)]
     enum Format {
         Json,
     }
 }
 
-#[derive(Debug, StructOpt)]
+#[derive(Clone, Debug, StructOpt)]
 #[structopt(global_setting(AppSettings::ColoredHelp))]
 struct Args {
     /// Path to device or file.
@@ -54,7 +54,7 @@ struct Args {
     cmd: Option<Commands>,
 }
 
-#[derive(Debug, StructOpt)]
+#[derive(Clone, Debug, StructOpt)]
 enum Commands {
     /// Create a new GPT Label.
     ///
