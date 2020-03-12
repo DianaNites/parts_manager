@@ -2,7 +2,9 @@ use super::components::*;
 use anyhow::{anyhow, Context, Result};
 use byte_unit::Byte;
 use cursive::{
+    theme::{BaseColor, Color, ColorStyle, ColorType, Effect, Style},
     traits::Resizable,
+    utils::markup::StyledString,
     view::{Nameable, View},
     views::{Dialog, DummyView, SelectView, TextView},
     Cursive,
@@ -219,7 +221,7 @@ pub fn part_view(data: &Data) -> Result<impl View> {
 use super::{get_info_block, Info};
 
 pub type DiskSelect = SelectView<Info>;
-pub type PartSelect = SelectView<Partition>;
+pub type PartSelect = SelectView<Option<Partition>>;
 
 fn create_gpt_dialog(_root: &mut Cursive, _info: &Info) -> impl View {
     DummyView
@@ -231,15 +233,32 @@ pub fn parts(gpt: Gpt, info: &Info) -> impl View {
     let mut parts_view: PartSelect = selection();
     for (i, part) in parts.iter().enumerate() {
         let label = format!("Partition {}", i + 1);
-        dbg!(&part);
-        parts_view.add_item(label, *part);
+        parts_view.add_item(label, Some(*part));
     }
+    parts_view.add_item(
+        StyledString::styled(
+            "Free Space",
+            Style {
+                effects: Effect::Bold.into(),
+                color: Some(ColorStyle {
+                    front: ColorType::Color(Color::Dark(BaseColor::Green)),
+                    // FIXME: https://github.com/gyscos/cursive/issues/284
+                    ..ColorStyle::primary()
+                }),
+            },
+        ),
+        None,
+    );
     let info = vec![
         TextView::empty().with_name("part_name"),
         TextView::empty().with_name("part_uuid"),
         TextView::empty().with_name("part_type"),
     ];
-    parts_view.set_on_select(|root: &mut Cursive, part: &Partition| {
+    parts_view.set_on_select(|root: &mut Cursive, part: &Option<Partition>| {
+        if part.is_none() {
+            return;
+        }
+        let part = part.as_ref().expect("Somehow part is None");
         // Unwraps are okay, if not is a bug.
         root.call_on_name("part_name", |v: &mut TextView| {
             v.set_content(format!("Name: {}", part.name()));
