@@ -270,9 +270,9 @@ pub fn parts(gpt: Gpt, info: &Info) -> impl View {
                                 .unwrap_or_else(|| Size::from_mib(1).into()),
                         )
                         .size(
-                            last.map(|part| {
+                            last.map(|_part| {
                                 // FIXME: Remaining
-                                Size::from_bytes(part.end().0 - part.start().0 + block_size.0)
+                                disk_size
                             })
                             .unwrap_or(disk_size),
                         )
@@ -280,7 +280,7 @@ pub fn parts(gpt: Gpt, info: &Info) -> impl View {
                         .finish(block_size),
                 )
             })
-            .unwrap_or_else(|| part.unwrap());
+            .unwrap_or_else(|| part.expect("What the fuck"));
         let part = part_;
         root.set_user_data(Some(part));
         // Unwraps are okay, if not is a bug.
