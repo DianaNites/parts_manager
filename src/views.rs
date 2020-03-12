@@ -221,7 +221,7 @@ use super::{get_info_block, Info};
 pub type DiskSelect = SelectView<Info>;
 pub type PartSelect = SelectView<Partition>;
 
-fn create_gpt_dialog(root: &mut Cursive, info: &Info) -> impl View {
+fn create_gpt_dialog(_root: &mut Cursive, _info: &Info) -> impl View {
     DummyView
 }
 
