@@ -226,13 +226,48 @@ pub fn part_view(data: &Data) -> Result<impl View> {
 use super::{get_info_block, Info};
 
 pub type DiskSelect = SelectView<Info>;
+pub type PartSelect = SelectView<Partition>;
 
 fn create_gpt_dialog(root: &mut Cursive, info: &Info) -> impl View {
     DummyView
 }
 
-pub fn parts(gpt: Gpt) -> impl View {
-    DummyView
+pub fn parts(gpt: Gpt, info: &Info) -> impl View {
+    let name = &info.name;
+    let parts = gpt.partitions();
+    let mut parts_view: PartSelect = selection();
+    for (i, part) in parts.iter().enumerate() {
+        let label = format!("Partition {}", i + 1);
+        dbg!(&part);
+        parts_view.add_item(label, *part);
+    }
+    let info = vec![
+        TextView::empty().with_name("part_name"),
+        TextView::empty().with_name("part_uuid"),
+        TextView::empty().with_name("part_type"),
+    ];
+    parts_view.set_on_select(|root: &mut Cursive, part: &Partition| {
+        // Unwraps are okay, if not is a bug.
+        root.call_on_name("part_name", |v: &mut TextView| {
+            v.set_content(format!("Name: {}", part.name()));
+        })
+        .unwrap();
+        root.call_on_name("part_uuid", |v: &mut TextView| {
+            v.set_content(format!("UUID: {}", part.uuid()));
+        })
+        .unwrap();
+        root.call_on_name("part_type", |v: &mut TextView| {
+            v.set_content(format!("Type: {}", part.partition_type()));
+        })
+        .unwrap();
+    });
+    //
+    info_box_panel(
+        &format!("Partitions ({})", name),
+        parts_view.with_name("parts").full_screen(),
+        info,
+        None,
+    )
 }
 
 pub fn disks() -> Result<impl View> {
@@ -249,7 +284,7 @@ pub fn disks() -> Result<impl View> {
         disks_view.add_item(label, get_info_block(&disk)?);
     }
     let info = vec![DummyView];
-    disks_view.set_on_submit(|root, info| {
+    disks_view.set_on_submit(|mut root, info| {
         let file = fs::OpenOptions::new()
             .read(true)
             .write(true)
@@ -259,14 +294,18 @@ pub fn disks() -> Result<impl View> {
                 let gpt: Result<Gpt, _> = Gpt::from_reader(file, info.block_size, info.disk_size);
                 match gpt {
                     Ok(gpt) => {
-                        root.add_fullscreen_layer(parts(gpt));
+                        root.add_fullscreen_layer(parts(gpt, info));
+                        root.call_on_name("parts", |v: &mut PartSelect| v.set_selection(0))
+                            .unwrap()(&mut root);
                     }
                     Err(e) => {
                         let info = info.clone();
-                        let dialog = error(e).button("Create new GPT?", move |root| {
-                            todo!("Are you sure?");
-                            let dialog = create_gpt_dialog(root, &info);
-                            root.add_layer(dialog);
+                        let dialog = error(e).button("New GPT", move |mut root| {
+                            let gpt: Gpt = Gpt::new(Uuid::new_v4());
+                            root.pop_layer();
+                            root.add_fullscreen_layer(parts(gpt, &info));
+                            root.call_on_name("parts", |v: &mut PartSelect| v.set_selection(0))
+                                .unwrap()(&mut root);
                         });
                         root.add_layer(dialog);
                     }

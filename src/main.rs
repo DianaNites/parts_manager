@@ -192,15 +192,20 @@ fn main() -> Result<()> {
             );
             match gpt {
                 Ok(gpt) => {
-                    root.add_fullscreen_layer(parts(gpt));
+                    root.add_fullscreen_layer(parts(gpt, &info));
+                    root.call_on_name("parts", |v: &mut PartSelect| v.set_selection(0))
+                        .unwrap()(&mut root);
                 }
                 Err(e) => {
-                    root.add_layer(error_quit(e).button("Create new Gpt?", |root| {
-                        //
-                        todo!("Create new Gpt")
+                    root.add_layer(error_quit(e).button("New Gpt", move |mut root| {
+                        let gpt: Gpt = Gpt::new(Uuid::new_v4());
+                        root.pop_layer();
+                        root.add_fullscreen_layer(parts(gpt, &info));
+                        root.call_on_name("parts", |v: &mut PartSelect| v.set_selection(0))
+                            .unwrap()(&mut root);
                     }));
                 }
-            }
+            };
         }
         // Global hotkeys
         root.add_global_callback('q', |s| s.quit());
