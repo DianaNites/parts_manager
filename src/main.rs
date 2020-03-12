@@ -49,7 +49,7 @@ struct Args {
 
     /// Use an interactive TUI interface.
     /// If `device` is not specified, displays a selection.
-    #[structopt(short, long, conflicts_with("Complete"))]
+    #[structopt(short, long)]
     interactive: bool,
 
     #[structopt(subcommand)]
