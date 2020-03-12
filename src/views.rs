@@ -230,6 +230,8 @@ fn create_gpt_dialog(_root: &mut Cursive, _info: &Info) -> impl View {
 
 pub fn parts(gpt: Gpt, info: &Info) -> impl View {
     let name = &info.name;
+    let block_size = info.block_size;
+    let disk_size = info.disk_size;
     let parts = gpt.partitions();
     let mut parts_view: PartSelect = selection();
     for (i, part) in parts.iter().enumerate() {
@@ -252,23 +254,50 @@ pub fn parts(gpt: Gpt, info: &Info) -> impl View {
     );
     let info = vec![
         TextView::empty().with_name("part_name"),
+        TextView::empty().with_name("part_start"),
+        TextView::empty().with_name("part_size"),
         TextView::empty().with_name("part_uuid"),
         TextView::empty().with_name("part_type"),
     ];
-    parts_view.set_on_select(|root: &mut Cursive, part: &Option<Partition>| {
-        // Dummy partition
-        // TODO: Real values for remaining space
-        let part = part.unwrap_or(
-            PartitionBuilder::new(Uuid::nil())
-                .name("None")
-                .start(Size::from_mib(1).into())
-                .size(Size::from_mib(2))
-                .partition_type(PartitionType::Unused)
-                .finish(BlockSize(512)),
-        );
+    parts_view.set_on_select(move |root: &mut Cursive, part: &Option<Partition>| {
+        let part_ = root
+            .with_user_data(|last: &mut Option<Partition>| {
+                part.unwrap_or(
+                    PartitionBuilder::new(Uuid::nil())
+                        .name("None")
+                        .start(
+                            last.map(|p| Offset(p.end().0 + 1))
+                                .unwrap_or_else(|| Size::from_mib(1).into()),
+                        )
+                        .size(
+                            last.map(|part| {
+                                // FIXME: Remaining
+                                Size::from_bytes(part.end().0 - part.start().0 + block_size.0)
+                            })
+                            .unwrap_or(disk_size),
+                        )
+                        .partition_type(PartitionType::Unused)
+                        .finish(block_size),
+                )
+            })
+            .unwrap_or_else(|| part.unwrap());
+        let part = part_;
+        root.set_user_data(Some(part));
         // Unwraps are okay, if not is a bug.
         root.call_on_name("part_name", |v: &mut TextView| {
             v.set_content(format!("Name: {}", part.name()));
+        })
+        .unwrap();
+        root.call_on_name("part_start", |v: &mut TextView| {
+            v.set_content(format!("Start: {}", part.start()));
+        })
+        .unwrap();
+        root.call_on_name("part_size", |v: &mut TextView| {
+            v.set_content(format!(
+                "Size: {}",
+                Byte::from_bytes((part.end().0 - part.start().0 + block_size.0).into())
+                    .get_appropriate_unit(true)
+            ));
         })
         .unwrap();
         root.call_on_name("part_uuid", |v: &mut TextView| {
