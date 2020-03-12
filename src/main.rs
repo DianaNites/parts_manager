@@ -8,6 +8,7 @@ use linapi::system::devices::block::{Block, Error};
 use parts::{types::*, uuid::Uuid, Gpt, PartitionBuilder, PartitionType};
 use serde::{Deserialize, Serialize};
 use std::{
+    ffi::OsStr,
     fs,
     path::{Path, PathBuf},
 };
@@ -254,30 +255,6 @@ fn get_info_cli(args: &Args) -> Result<Info> {
     })
 }
 
-#[allow(dead_code)]
-fn interactive() -> Result<()> {
-    let mut root = Cursive::default();
-    // Theme
-    let mut theme = root.current_theme().clone();
-    theme.palette[Background] = TerminalDefault;
-    theme.palette[View] = TerminalDefault;
-    theme.palette[Primary] = Dark(White);
-    theme.palette[Tertiary] = Dark(White);
-    root.set_theme(theme);
-
-    root.add_fullscreen_layer(disks()?);
-    // Disk Info box will start empty, make sure callback is called and it's set.
-    root.call_on_name("disks", |v: &mut SelectView<Data>| v.set_selection(0))
-        .unwrap()(&mut root);
-
-    // Global hotkeys
-    root.add_global_callback('q', |s| s.quit());
-    root.add_global_callback('h', |_| todo!("Help menu"));
-    //
-    root.run();
-    Ok(())
-}
-
 fn main() -> Result<()> {
     let args: Args = Args::from_args();
     //
@@ -363,7 +340,7 @@ fn main() -> Result<()> {
             }
         }
     } else if args.interactive {
-        dbg!(args);
+        dbg!(&args);
         //
         let mut root = Cursive::default();
         // Theme
@@ -373,9 +350,21 @@ fn main() -> Result<()> {
         theme.palette[Primary] = Dark(White);
         theme.palette[Tertiary] = Dark(White);
         root.set_theme(theme);
+        // User entry point
+        if args.device == OsStr::new("Auto") {
+            root.add_fullscreen_layer(disks()?);
+            // Disk Info box will start empty, make sure callback is called and it's set.
+            root.call_on_name("disks", |v: &mut SelectView<Data>| v.set_selection(0))
+                .unwrap()(&mut root);
+        } else {
+            //
+        }
         //
+        // Global hotkeys
+        root.add_global_callback('q', |s| s.quit());
+        root.add_global_callback('h', |_| todo!("Help menu"));
         //
-        // root.run();
+        root.run();
     }
 
     //
