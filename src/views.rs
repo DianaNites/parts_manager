@@ -225,11 +225,11 @@ pub fn part_view(data: &Data) -> Result<impl View> {
 
 use super::{get_info_block, Info};
 
+pub type DiskSelect = SelectView<Info>;
+
 fn create_gpt_dialog(root: &mut Cursive, info: &Info) -> impl View {
     DummyView
 }
-
-pub type DiskSelect = SelectView<Info>;
 
 pub fn parts(gpt: Gpt) -> impl View {
     DummyView
