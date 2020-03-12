@@ -34,10 +34,6 @@ pub fn info_box_panel<V: View, BV: IntoBoxedView + 'static>(
     selecting: V,
     info: Vec<BV>,
 ) -> Panel<impl View> {
-    // if let Some(s) = footer {
-    //     l.add_child(TextView::new(s).h_align(HAlign::Right));
-    // }
-    //
     panel(title, info_box(selecting, info).full_screen())
 }
 
