@@ -1,7 +1,6 @@
 use anyhow::{anyhow, Result};
 use cursive::{
     theme::{BaseColor::*, Color::*, PaletteColor::*},
-    views::SelectView,
     Cursive,
 };
 use linapi::system::devices::block::{Block, Error};
@@ -16,18 +15,19 @@ mod components;
 mod views;
 
 use cli::{add_partition, create_table, dump, restore, Args, Commands, End, PartitionInfo};
+use components::error_quit;
 use views::*;
 
 #[derive(Debug, Clone)]
-struct Info {
-    path: PathBuf,
-    block_size: BlockSize,
-    disk_size: Size,
-    model: String,
+pub struct Info {
+    pub path: PathBuf,
+    pub block_size: BlockSize,
+    pub disk_size: Size,
+    pub model: String,
+    pub name: String,
 }
 
-fn get_info_block(block: &Block) -> Result<Info> {
-    //
+pub fn get_info_block(block: &Block) -> Result<Info> {
     Ok(Info {
         path: block
             .dev_path()?
@@ -35,6 +35,7 @@ fn get_info_block(block: &Block) -> Result<Info> {
         block_size: BlockSize(block.logical_block_size()?),
         disk_size: Size::from_bytes(block.size()?),
         model: block.model()?.unwrap_or_default(),
+        name: block.name().to_owned(),
     })
 }
 
@@ -69,6 +70,13 @@ fn get_info_cli(args: &Args) -> Result<Info> {
             Some(block) => block.model()?.unwrap_or_default(),
             None => String::new(),
         },
+        name: args
+            .device
+            .file_stem()
+            .ok_or_else(|| anyhow!("Invalid device file"))?
+            .to_str()
+            .ok_or_else(|| anyhow!("Invalid UTF-8 in device file name"))?
+            .to_owned(),
     })
 }
 
@@ -168,13 +176,32 @@ fn main() -> Result<()> {
         // User entry point
         if args.device == OsStr::new("Auto") {
             root.add_fullscreen_layer(disks()?);
-            // Disk Info box will start empty, make sure callback is called and it's set.
-            root.call_on_name("disks", |v: &mut SelectView<Data>| v.set_selection(0))
+            // Disk Info box will start empty, make sure callback is called and it's
+            // set.
+            root.call_on_name("disks", |v: &mut DiskSelect| v.set_selection(0))
                 .unwrap()(&mut root);
         } else {
-            //
+            let info = get_info_cli(&args)?;
+            let gpt: Result<Gpt, _> = Gpt::from_reader(
+                fs::OpenOptions::new()
+                    .write(true)
+                    .read(true)
+                    .open(args.device)?,
+                info.block_size,
+                info.disk_size,
+            );
+            match gpt {
+                Ok(gpt) => {
+                    root.add_fullscreen_layer(parts(gpt));
+                }
+                Err(e) => {
+                    root.add_layer(error_quit(e).button("Create new Gpt?", |root| {
+                        //
+                        todo!("Create new Gpt")
+                    }));
+                }
+            }
         }
-        //
         // Global hotkeys
         root.add_global_callback('q', |s| s.quit());
         root.add_global_callback('h', |_| todo!("Help menu"));

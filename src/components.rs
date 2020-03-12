@@ -1,8 +1,9 @@
+use anyhow::Error;
 use cursive::{
     align::HAlign,
     traits::Resizable,
     view::{IntoBoxedView, View},
-    views::{LinearLayout, Panel, ScrollView, SelectView, TextView},
+    views::{Dialog, LinearLayout, Panel, ScrollView, SelectView, TextView},
 };
 
 pub fn selection<T: 'static>() -> SelectView<T> {
@@ -36,4 +37,16 @@ pub fn info_box_panel<V: View, BV: IntoBoxedView + 'static>(
     }
     //
     panel(title, l.full_screen())
+}
+
+pub fn error<E: Into<Error>>(e: E) -> Dialog {
+    let e = e.into();
+    Dialog::info(format!("{:?}", e)).title("Error")
+}
+
+pub fn error_quit<E: Into<Error>>(e: E) -> Dialog {
+    let e = e.into();
+    Dialog::text(format!("{:?}", e))
+        .title("Error")
+        .button("Ok", |root| root.quit())
 }

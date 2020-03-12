@@ -4,7 +4,7 @@ use byte_unit::Byte;
 use cursive::{
     traits::Resizable,
     view::{Nameable, View},
-    views::{Dialog, TextView},
+    views::{Dialog, DummyView, SelectView, TextView},
     Cursive,
 };
 use linapi::system::devices::block::Block;
@@ -223,10 +223,22 @@ pub fn part_view(data: &Data) -> Result<impl View> {
     Ok(parts)
 }
 
+use super::{get_info_block, Info};
+
+fn create_gpt_dialog(root: &mut Cursive, info: &Info) -> impl View {
+    DummyView
+}
+
+pub type DiskSelect = SelectView<Info>;
+
+pub fn parts(gpt: Gpt) -> impl View {
+    DummyView
+}
+
 pub fn disks() -> Result<impl View> {
     let mut disks: Vec<Block> = Block::get_connected().context("Couldn't get connected devices")?;
     disks.sort_unstable_by(|a, b| a.name().cmp(b.name()));
-    let mut disks_view = selection();
+    let mut disks_view: DiskSelect = selection::<Info>();
     for disk in disks {
         let label = format!(
             "Disk {} - {} - Model: {}",
@@ -234,23 +246,37 @@ pub fn disks() -> Result<impl View> {
             Byte::from_bytes(disk.size()?.into()).get_appropriate_unit(true),
             disk.model()?.unwrap_or_else(|| "None".into()),
         );
-        disks_view.add_item(label, Data::new(disk)?);
+        disks_view.add_item(label, get_info_block(&disk)?);
     }
-    let info = vec![TextView::empty().with_name("uuid")];
-    disks_view.set_on_select(|root: &mut Cursive, dev: &Data| {
-        // Unwraps are okay, if not is a bug.
-        root.call_on_name("uuid", |v: &mut TextView| {
-            if let Some(gpt) = &dev.gpt {
-                v.set_content(format!("UUID: {}", gpt.uuid()));
-            } else {
-                v.set_content(format!("UUID: {}", "Unknown"));
+    let info = vec![DummyView];
+    disks_view.set_on_submit(|root, info| {
+        let file = fs::OpenOptions::new()
+            .read(true)
+            .write(true)
+            .open(&info.path);
+        match file.with_context(|| format!("Couldn't open: `{}`", info.path.display())) {
+            Ok(file) => {
+                let gpt: Result<Gpt, _> = Gpt::from_reader(file, info.block_size, info.disk_size);
+                match gpt {
+                    Ok(gpt) => {
+                        root.add_fullscreen_layer(parts(gpt));
+                    }
+                    Err(e) => {
+                        let info = info.clone();
+                        let dialog = error(e).button("Create new GPT?", move |root| {
+                            todo!("Are you sure?");
+                            let dialog = create_gpt_dialog(root, &info);
+                            root.add_layer(dialog);
+                        });
+                        root.add_layer(dialog);
+                    }
+                }
             }
-        })
-        .unwrap();
-    });
-    disks_view.set_on_submit(|root, data| {
+            Err(e) => {
+                root.add_layer(error(e));
+            }
+        }
         //
-        root.add_fullscreen_layer(part_view(data).unwrap())
     });
     let disks = info_box_panel(
         "Disks",
