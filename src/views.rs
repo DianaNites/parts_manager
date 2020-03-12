@@ -34,7 +34,6 @@ pub fn partition_view(
         &format!("Partitions ({})", name),
         parts_view.with_name("parts").full_screen(),
         info,
-        None,
     );
     Ok(parts)
 }
@@ -128,12 +127,7 @@ pub fn disk_selection() -> Result<impl View> {
         };
     });
 
-    let disks = info_box_panel(
-        "Disks",
-        disks_view.with_name("disks").full_screen(),
-        info,
-        None,
-    );
+    let disks = info_box_panel("Disks", disks_view.with_name("disks").full_screen(), info);
     //
     Ok(disks)
 }
@@ -218,7 +212,6 @@ pub fn part_view(data: &Data) -> Result<impl View> {
         &format!("Partitions ({})", name),
         parts_view.with_name("parts").full_screen(),
         info,
-        None,
     );
     Ok(parts)
 }
@@ -266,7 +259,6 @@ pub fn parts(gpt: Gpt, info: &Info) -> impl View {
         &format!("Partitions ({})", name),
         parts_view.with_name("parts").full_screen(),
         info,
-        None,
     )
 }
 
@@ -317,11 +309,6 @@ pub fn disks() -> Result<impl View> {
         }
         //
     });
-    let disks = info_box_panel(
-        "Disks",
-        disks_view.with_name("disks").full_screen(),
-        info,
-        None,
-    );
+    let disks = info_box_panel("Disks", disks_view.with_name("disks").full_screen(), info);
     Ok(disks)
 }

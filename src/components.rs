@@ -3,7 +3,7 @@ use cursive::{
     align::HAlign,
     traits::Resizable,
     view::{IntoBoxedView, View},
-    views::{Dialog, LinearLayout, Panel, ScrollView, SelectView, TextView},
+    views::{Dialog, LinearLayout, Panel, ScrollView, SelectView},
 };
 
 pub fn selection<T: 'static>() -> SelectView<T> {
@@ -14,6 +14,18 @@ pub fn panel<V: View>(title: &str, v: V) -> Panel<V> {
     Panel::new(v).title(title).title_position(HAlign::Left)
 }
 
+fn info_box<V: View, BV: IntoBoxedView + 'static>(selecting: V, info: Vec<BV>) -> LinearLayout {
+    let mut info_box = LinearLayout::vertical();
+    for view in info {
+        info_box.add_child(view);
+    }
+    let info_box = panel("Info", info_box).full_width();
+    //
+    LinearLayout::vertical()
+        .child(ScrollView::new(selecting))
+        .child(info_box.full_width())
+}
+
 /// Panel with a box for other info, containing a view `selecting`.
 ///
 /// Updating information in the info box is not handled by this function
@@ -21,22 +33,21 @@ pub fn info_box_panel<V: View, BV: IntoBoxedView + 'static>(
     title: &str,
     selecting: V,
     info: Vec<BV>,
-    footer: Option<&str>,
 ) -> Panel<impl View> {
-    let mut info_box = LinearLayout::vertical();
-    for view in info {
-        info_box.add_child(view);
-    }
-    let info_box = panel("Info", info_box).full_width();
+    // if let Some(s) = footer {
+    //     l.add_child(TextView::new(s).h_align(HAlign::Right));
+    // }
     //
-    let mut l = LinearLayout::vertical()
-        .child(ScrollView::new(selecting))
-        .child(info_box.full_width());
-    if let Some(s) = footer {
-        l.add_child(TextView::new(s).h_align(HAlign::Right));
-    }
-    //
-    panel(title, l.full_screen())
+    panel(title, info_box(selecting, info).full_screen())
+}
+
+pub fn info_box_panel_footer<V: View, BV: IntoBoxedView + 'static>(
+    title: &str,
+    selecting: V,
+    info: Vec<BV>,
+    footer: impl View,
+) -> Panel<impl View> {
+    panel(title, info_box(selecting, info).child(footer).full_screen())
 }
 
 pub fn error<E: Into<Error>>(e: E) -> Dialog {
