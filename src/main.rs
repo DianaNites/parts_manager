@@ -30,8 +30,14 @@ arg_enum! {
     }
 }
 
+/// Modern GPT Partition editor
 #[derive(Clone, Debug, StructOpt)]
-#[structopt(global_setting(AppSettings::ColoredHelp))]
+#[structopt(global_settings(&[
+    AppSettings::ColoredHelp,
+    AppSettings::SubcommandsNegateReqs,
+    AppSettings::DisableHelpSubcommand,
+    AppSettings::VersionlessSubcommands,
+]))]
 struct Args {
     /// Path to device or file.
     #[structopt(
@@ -49,7 +55,7 @@ struct Args {
 
     /// Use an interactive TUI interface.
     /// If `device` is not specified, displays a selection.
-    #[structopt(short, long)]
+    #[structopt(short, long, required_unless("subcommand"))]
     interactive: bool,
 
     #[structopt(subcommand)]
@@ -356,8 +362,20 @@ fn main() -> Result<()> {
                 app.gen_completions_to(name, shell, &mut std::io::stdout());
             }
         }
-    } else {
+    } else if args.interactive {
+        dbg!(args);
         //
+        let mut root = Cursive::default();
+        // Theme
+        let mut theme = root.current_theme().clone();
+        theme.palette[Background] = TerminalDefault;
+        theme.palette[View] = TerminalDefault;
+        theme.palette[Primary] = Dark(White);
+        theme.palette[Tertiary] = Dark(White);
+        root.set_theme(theme);
+        //
+        //
+        // root.run();
     }
 
     //
