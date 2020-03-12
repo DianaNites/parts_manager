@@ -31,7 +31,7 @@ pub fn info_box_panel<V: View, BV: IntoBoxedView + 'static>(
     //
     let mut l = LinearLayout::vertical()
         .child(ScrollView::new(selecting))
-        .child(info_box.full_screen());
+        .child(info_box.full_width());
     if let Some(s) = footer {
         l.add_child(TextView::new(s).h_align(HAlign::Right));
     }
