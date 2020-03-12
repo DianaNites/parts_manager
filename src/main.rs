@@ -194,8 +194,58 @@ fn dump(format: Format, info: PartitionInfo) -> Result<String> {
     }
 }
 
-fn get_info() {
+#[derive(Debug, Clone)]
+struct Info {
+    path: PathBuf,
+    block_size: BlockSize,
+    disk_size: Size,
+    model: String,
+}
+
+fn get_info_block(block: &Block) -> Result<Info> {
     //
+    Ok(Info {
+        path: block
+            .dev_path()?
+            .ok_or_else(|| anyhow!("Couldn't get device file"))?,
+        block_size: BlockSize(block.logical_block_size()?),
+        disk_size: Size::from_bytes(block.size()?),
+        model: block.model()?.unwrap_or_default(),
+    })
+}
+
+fn get_info_cli(args: &Args) -> Result<Info> {
+    let block = match Block::from_dev(&args.device) {
+        Ok(block) => Some(block),
+        Err(Error::Invalid) => None,
+        Err(e) => return Err(e.into()),
+    };
+    Ok(Info {
+        path: args.device.clone(),
+        block_size: BlockSize(match args.block {
+            Some(s) => s,
+            None => {
+                if let Some(Commands::Restore { .. }) = args.cmd {
+                    0
+                } else {
+                    block
+                        .as_ref()
+                        .map(|b| b.logical_block_size())
+                        .ok_or_else(|| {
+                            anyhow!("Couldn't automatically determine logical block size")
+                        })??
+                }
+            }
+        }),
+        disk_size: Size::from_bytes(match block.as_ref() {
+            Some(block) => block.size()?,
+            None => fs::metadata(&args.device)?.len(),
+        }),
+        model: match block.as_ref() {
+            Some(block) => block.model()?.unwrap_or_default(),
+            None => String::new(),
+        },
+    })
 }
 
 #[allow(dead_code)]
@@ -225,47 +275,14 @@ fn interactive() -> Result<()> {
 fn main() -> Result<()> {
     let args: Args = Args::from_args();
     //
-    let path = args.device;
-    let block = match Block::from_dev(&path) {
-        Ok(block) => Some(block),
-        Err(Error::Invalid) => None,
-        Err(e) => return Err(e.into()),
-    };
-    let block_size = match args.block {
-        Some(s) => s,
-        None => {
-            if let Some(Commands::Restore { .. }) = args.cmd {
-                0
-            } else {
-                block
-                    .as_ref()
-                    .map(|b| b.logical_block_size())
-                    .ok_or_else(|| {
-                        anyhow!("Couldn't automatically determine logical block size")
-                    })??
-            }
-        }
-    };
-    let file_size = match block.as_ref() {
-        Some(block) => block.size()?,
-        None => fs::metadata(&path)?.len(),
-    };
-    let _name = match block.as_ref() {
-        Some(block) => block.name().to_owned(),
-        None => path
-            .file_name()
-            .ok_or_else(|| anyhow!("Missing filename"))?
-            .to_str()
-            .ok_or_else(|| anyhow!("Invalid UTF-8 in filename"))?
-            .to_owned(),
-    };
-    let model = match block.as_ref() {
-        Some(block) => block.model()?.unwrap_or_default(),
-        None => "".into(),
-    };
-    let block_size = BlockSize(block_size);
-    let disk_size = Size::from_bytes(file_size);
-    if let Some(cmd) = args.cmd {
+    if args.cmd.is_some() {
+        let info = get_info_cli(&args)?;
+        let cmd = args.cmd.unwrap();
+        //
+        let path = info.path;
+        let block_size = info.block_size;
+        let disk_size = info.disk_size;
+        let model = info.model;
         match cmd {
             Commands::Create { uuid } => {
                 create_table(uuid, &path, block_size, disk_size)?;
