@@ -2,15 +2,16 @@ use super::components::*;
 use anyhow::{anyhow, Context, Result};
 use byte_unit::Byte;
 use cursive::{
+    event::{Event, Key},
     theme::{BaseColor, Color, ColorStyle, ColorType, Effect, Style},
     traits::Resizable,
     utils::markup::StyledString,
-    view::{Nameable, View},
-    views::{Dialog, DummyView, SelectView, TextView},
+    view::{Finder, Nameable, View},
+    views::{Button, Canvas, Dialog, DummyView, LinearLayout, SelectView, TextView},
     Cursive,
 };
 use linapi::system::devices::block::Block;
-use parts::{types::*, uuid::Uuid, Gpt, Partition};
+use parts::{types::*, uuid::Uuid, Gpt, Partition, PartitionBuilder, PartitionType};
 use std::{fs, path::PathBuf};
 
 pub fn partition_view(
@@ -255,10 +256,16 @@ pub fn parts(gpt: Gpt, info: &Info) -> impl View {
         TextView::empty().with_name("part_type"),
     ];
     parts_view.set_on_select(|root: &mut Cursive, part: &Option<Partition>| {
-        if part.is_none() {
-            return;
-        }
-        let part = part.as_ref().expect("Somehow part is None");
+        // Dummy partition
+        // TODO: Real values for remaining space
+        let part = part.unwrap_or(
+            PartitionBuilder::new(Uuid::nil())
+                .name("None")
+                .start(Size::from_mib(1).into())
+                .size(Size::from_mib(2))
+                .partition_type(PartitionType::Unused)
+                .finish(BlockSize(512)),
+        );
         // Unwraps are okay, if not is a bug.
         root.call_on_name("part_name", |v: &mut TextView| {
             v.set_content(format!("Name: {}", part.name()));
@@ -274,11 +281,29 @@ pub fn parts(gpt: Gpt, info: &Info) -> impl View {
         .unwrap();
     });
     //
-    info_box_panel(
+    Canvas::wrap(info_box_panel_footer(
         &format!("Partitions ({})", name),
         parts_view.with_name("parts").full_screen(),
         info,
-    )
+        Canvas::wrap(
+            LinearLayout::horizontal()
+                .child(Button::new("Test", |_| ()))
+                .child(Button::new("Test 2", |_| ()))
+                .with_name("buttons"),
+        )
+        .with_take_focus(|_, _| false)
+        .with_draw(|s, p| {
+            let mut p = p.clone();
+            p.focused = true;
+            s.draw(&p.focused(true))
+        }),
+    ))
+    .with_on_event(|s, e| match e {
+        Event::Key(Key::Right) | Event::Key(Key::Left) | Event::Key(Key::Enter) => s
+            .call_on_name("buttons", |b: &mut LinearLayout| b.on_event(e))
+            .unwrap(),
+        _ => s.on_event(e),
+    })
 }
 
 pub fn disks() -> Result<impl View> {
