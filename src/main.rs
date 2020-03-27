@@ -13,6 +13,7 @@ use std::{
 };
 use structopt::StructOpt;
 
+mod actions;
 mod cli;
 mod interactive;
 
