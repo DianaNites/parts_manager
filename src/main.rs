@@ -17,7 +17,7 @@ mod actions;
 mod cli;
 mod interactive;
 
-use cli::{add_partition, create_table, dump, restore, Args, Commands, End, PartitionInfo};
+use cli::{add_partition, create_table, dump, restore, Args, Commands, End, DeviceInfo};
 use interactive::{components::error_quit, views::*};
 
 #[derive(Debug, Clone)]
@@ -133,7 +133,7 @@ fn main() -> Result<()> {
             }
             Commands::Dump { format } => {
                 let gpt: Gpt = Gpt::from_reader(fs::File::open(path)?, block_size)?;
-                let info = PartitionInfo::new(
+                let info = DeviceInfo::new(
                     &gpt,
                     info.block_size,
                     info.disk_size,

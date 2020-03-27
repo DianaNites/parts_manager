@@ -37,7 +37,7 @@ fn dump_button(
     view.set_on_submit(move |root: &mut Cursive, format: &Format| {
         let text = match cli::dump(
             *format,
-            cli::PartitionInfo::new(
+            cli::DeviceInfo::new(
                 &gpt,
                 block_size,
                 device_size,

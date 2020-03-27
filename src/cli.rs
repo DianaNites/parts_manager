@@ -38,7 +38,7 @@ struct PartInfo {
 }
 
 #[derive(Debug, Serialize, Deserialize)]
-pub struct PartitionInfo {
+pub struct DeviceInfo {
     #[serde(default)]
     version: PartitionInfoVersion,
 
@@ -53,7 +53,7 @@ pub struct PartitionInfo {
     partitions: Vec<PartInfo>,
 }
 
-impl PartitionInfo {
+impl DeviceInfo {
     pub fn new(
         gpt: &Gpt,
         block_size: BlockSize,
@@ -61,7 +61,7 @@ impl PartitionInfo {
         model: String,
         version: PartitionInfoVersion,
     ) -> Self {
-        PartitionInfo {
+        DeviceInfo {
             version,
             model,
             uuid: gpt.uuid(),
@@ -143,7 +143,7 @@ pub fn add_partition(
     Ok(())
 }
 
-pub fn dump(format: Format, info: PartitionInfo) -> Result<String> {
+pub fn dump(format: Format, info: DeviceInfo) -> Result<String> {
     match format {
         Format::Json => Ok(serde_json::to_string_pretty(&info)?),
     }
@@ -152,7 +152,7 @@ pub fn dump(format: Format, info: PartitionInfo) -> Result<String> {
 pub fn restore(format: Format) -> Result<Gpt> {
     match format {
         Format::Json => {
-            let info: PartitionInfo = serde_json::from_reader(io::stdin())?;
+            let info: DeviceInfo = serde_json::from_reader(io::stdin())?;
             Ok(info.into_gpt()?)
         }
     }
