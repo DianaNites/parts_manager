@@ -14,9 +14,7 @@ use std::{
 use structopt::StructOpt;
 
 mod cli;
-#[allow(dead_code)]
 mod components;
-#[allow(dead_code)]
 mod views;
 
 use cli::{add_partition, create_table, dump, restore, Args, Commands, End, PartitionInfo};
