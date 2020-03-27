@@ -145,7 +145,7 @@ pub fn disks() -> Result<impl View> {
             .open(&info.path);
         match file.with_context(|| format!("Couldn't open: `{}`", info.path.display())) {
             Ok(file) => {
-                let gpt: Result<Gpt, _> = Gpt::from_reader(file, info.block_size, info.disk_size);
+                let gpt: Result<Gpt, _> = Gpt::from_reader(file, info.block_size);
                 match gpt {
                     Ok(gpt) => {
                         root.add_fullscreen_layer(parts(gpt, info));
@@ -155,7 +155,8 @@ pub fn disks() -> Result<impl View> {
                     Err(e) => {
                         let info = info.clone();
                         let dialog = error(e).button("New GPT", move |mut root| {
-                            let gpt: Gpt = Gpt::new(Uuid::new_v4());
+                            let gpt: Gpt =
+                                Gpt::new(Uuid::new_v4(), info.disk_size, info.block_size);
                             root.pop_layer();
                             root.add_fullscreen_layer(parts(gpt, &info));
                             root.call_on_name("parts", |v: &mut PartSelect| v.set_selection(0))
