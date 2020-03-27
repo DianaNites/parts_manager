@@ -143,7 +143,7 @@ fn main() -> Result<()> {
                     info.model,
                     Default::default(),
                 );
-                dump(format, info)?;
+                println!("{}", dump(format, info)?);
             }
             Commands::Restore {
                 format,
