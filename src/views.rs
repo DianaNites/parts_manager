@@ -62,8 +62,7 @@ pub fn parts(gpt: Gpt, info: &Info) -> impl View {
     let device_size = info.disk_size;
     let model = info.model.clone();
     let remaining = gpt.remaining();
-    let parts = gpt.partitions(); //.to_vec();
-                                  // let gpt = Rc::new(gpt);
+    let parts = gpt.partitions();
     let mut parts_view: PartSelect = selection();
     for (i, part) in parts.iter().enumerate() {
         let label = format!("Partition {}", i + 1);
