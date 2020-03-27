@@ -89,7 +89,7 @@ pub enum Commands {
     /// Dump the GPT Label to disk. Writes to stdout.
     Dump {
         /// Format to output in
-        #[structopt(possible_values(&Format::variants()), default_value = "Json")]
+        #[structopt(case_insensitive(true), possible_values(&Format::variants()), default_value = "Json")]
         format: Format,
     },
 
