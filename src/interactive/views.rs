@@ -1,5 +1,9 @@
 use super::components::*;
-use crate::{actions::Format, cli, get_info_block, Info};
+use crate::{
+    actions::{dump, DeviceInfo, Format},
+    get_info_block,
+    Info,
+};
 use anyhow::{Context, Result};
 use byte_unit::Byte;
 use cursive::{
@@ -35,9 +39,9 @@ fn dump_button(
         )
     }
     view.set_on_submit(move |root: &mut Cursive, format: &Format| {
-        let text = match cli::dump(
+        let text = match dump(
             *format,
-            cli::DeviceInfo::new(
+            DeviceInfo::new(
                 &gpt,
                 block_size,
                 device_size,
