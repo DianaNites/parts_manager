@@ -3,12 +3,7 @@ use crate::actions::Format;
 use anyhow::Result;
 use parts::{types::*, uuid::Uuid, Gpt, Partition, PartitionBuilder, PartitionType};
 use serde::{Deserialize, Serialize};
-use std::{
-    fs,
-    io,
-    io::{prelude::*, SeekFrom},
-    path::Path,
-};
+use std::io;
 
 pub mod args;
 
@@ -94,27 +89,6 @@ impl DeviceInfo {
         }
         Ok(gpt)
     }
-}
-
-pub fn create_table(
-    uuid: Option<Uuid>,
-    path: &Path,
-    block_size: BlockSize,
-    disk_size: Size,
-) -> Result<Gpt> {
-    let uuid = uuid.unwrap_or_else(Uuid::new_v4);
-    let gpt: Gpt = Gpt::new(uuid, disk_size, block_size);
-    let mut f = fs::OpenOptions::new().write(true).open(path)?;
-    gpt.to_bytes_with_func(
-        |o, buf| {
-            f.seek(SeekFrom::Start(o.0))?;
-            f.write_all(buf)?;
-            Ok(())
-        },
-        block_size,
-        disk_size,
-    )?;
-    Ok(gpt)
 }
 
 #[derive(Debug, Copy, Clone)]
