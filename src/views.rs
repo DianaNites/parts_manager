@@ -99,8 +99,11 @@ pub fn parts(gpt: Gpt, info: &Info) -> impl View {
         info,
         Canvas::wrap(
             LinearLayout::horizontal()
+                .child(DummyView.full_width())
                 .child(Button::new("Test", |_| ()))
+                .child(DummyView)
                 .child(Button::new("Test 2", |_| ()))
+                .child(DummyView.full_width())
                 .with_name("buttons"),
         )
         .with_take_focus(|_, _| false)
