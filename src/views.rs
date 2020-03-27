@@ -4,12 +4,11 @@ use anyhow::{Context, Result};
 use byte_unit::Byte;
 use cursive::{
     align::HAlign,
-    event::{Event, Key},
     theme::{BaseColor, Color, ColorStyle, ColorType, Effect, Style},
     traits::Resizable,
     utils::markup::StyledString,
-    view::{Finder, Nameable, View},
-    views::{Button, Canvas, Dialog, DummyView, EditView, LinearLayout, SelectView, TextView},
+    view::{Nameable, View},
+    views::{Button, Dialog, DummyView, EditView, LinearLayout, SelectView, TextView},
     Cursive,
 };
 use linapi::system::devices::block::Block;
@@ -169,18 +168,15 @@ pub fn parts(gpt: Gpt, info: &Info) -> impl View {
         .expect("First button didn't accept focus");
     let buttons = focused_view(buttons.with_name("buttons"));
     //
-    Canvas::wrap(info_box_panel_footer(
-        &format!("Partitions ({})", name),
-        parts_view.with_name("parts").full_screen(),
-        info,
-        buttons,
-    ))
-    .with_on_event(|s, e| match e {
-        Event::Key(Key::Right) | Event::Key(Key::Left) | Event::Key(Key::Enter) => s
-            .call_on_name("buttons", |b: &mut LinearLayout| b.on_event(e))
-            .unwrap(),
-        _ => s.on_event(e),
-    })
+    horizontal_forward::<LinearLayout, _>(
+        info_box_panel_footer(
+            &format!("Partitions ({})", name),
+            parts_view.with_name("parts").full_screen(),
+            info,
+            buttons,
+        ),
+        "buttons",
+    )
 }
 
 pub fn disks() -> Result<impl View> {

@@ -1,8 +1,9 @@
 use anyhow::Error;
 use cursive::{
     align::HAlign,
+    event::{Event, Key},
     traits::Resizable,
-    view::{IntoBoxedView, View},
+    view::{Finder, IntoBoxedView, View},
     views::{Canvas, Dialog, LinearLayout, Panel, ScrollView, SelectView},
 };
 
@@ -67,4 +68,20 @@ pub fn focused_view<V: View>(view: V) -> Canvas<V> {
             p.focused = true;
             s.draw(&p)
         })
+}
+
+/// Returns a view that forwards the `Left`, `Right`, and `Enter`
+/// events to `name`, a child of `view`.
+///
+/// `view` itself will not receive these events.
+///
+/// `BV` is the type of the view `name`. Panics if incorrect.
+pub fn horizontal_forward<BV: View, V: View>(view: V, name: &str) -> impl View {
+    let name = name.to_string();
+    Canvas::wrap(view).with_on_event(move |s, e| match e {
+        Event::Key(Key::Right) | Event::Key(Key::Left) | Event::Key(Key::Enter) => {
+            s.call_on_name(&name, |b: &mut BV| b.on_event(e)).unwrap()
+        }
+        _ => s.on_event(e),
+    })
 }
