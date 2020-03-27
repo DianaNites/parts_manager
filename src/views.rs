@@ -110,7 +110,7 @@ pub fn parts(gpt: Gpt, info: &Info) -> impl View {
         .with_draw(|s, p| {
             let mut p = p.clone();
             p.focused = true;
-            s.draw(&p.focused(true))
+            s.draw(&p)
         }),
     ))
     .with_on_event(|s, e| match e {
