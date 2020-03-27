@@ -14,12 +14,10 @@ use std::{
 use structopt::StructOpt;
 
 mod cli;
-mod components;
-mod views;
+mod interactive;
 
 use cli::{add_partition, create_table, dump, restore, Args, Commands, End, PartitionInfo};
-use components::error_quit;
-use views::*;
+use interactive::{components::error_quit, views::*};
 
 #[derive(Debug, Clone)]
 pub struct Info {

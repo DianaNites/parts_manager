@@ -1,5 +1,5 @@
-use super::{components::*, get_info_block, Info};
-use crate::cli;
+use super::components::*;
+use crate::{cli, get_info_block, Info};
 use anyhow::{Context, Result};
 use byte_unit::Byte;
 use cursive::{
