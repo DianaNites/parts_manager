@@ -16,6 +16,7 @@ arg_enum! {
     }
 }
 
+/// Create and write a new empty Gpt
 pub fn create_table(
     uuid: Option<Uuid>,
     path: &Path,
