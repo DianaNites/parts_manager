@@ -78,35 +78,18 @@ fn dump_button(
     root.add_layer(panel(title, view).min_width(title.len() + 6));
 }
 
-fn select_disk(root: &mut Cursive, info: &Info) {
+fn select_disk(info: &Info) -> Result<Gpt> {
     let file = fs::OpenOptions::new()
         .read(true)
         .write(true)
-        .open(&info.path);
-    match file.with_context(|| format!("Couldn't open: `{}`", info.path.display())) {
-        Ok(file) => {
-            let gpt: Result<Gpt, _> = Gpt::from_reader(file, info.block_size);
-            match gpt {
-                Ok(gpt) => {
-                    root.add_fullscreen_layer(parts(gpt, info));
-                    setup_views(root);
-                }
-                Err(e) => {
-                    let info = info.clone();
-                    let dialog = error(e).button("New GPT", move |root| {
-                        let gpt: Gpt = Gpt::new(Uuid::new_v4(), info.disk_size, info.block_size);
-                        root.pop_layer();
-                        root.add_fullscreen_layer(parts(gpt, &info));
-                        setup_views(root);
-                    });
-                    root.add_layer(dialog);
-                }
-            }
-        }
-        Err(e) => {
-            root.add_layer(error(e));
-        }
-    }
+        .open(&info.path)
+        .with_context(|| format!("Couldn't open: `{}`", info.path.display()))?;
+    let gpt: Gpt = Gpt::from_reader(file, info.block_size)?;
+    Ok(gpt)
+}
+
+fn new_gpt(info: &Info) -> Gpt {
+    Gpt::new(Uuid::new_v4(), info.disk_size, info.block_size)
 }
 
 /// Helper to setup views due to cursive oddities
@@ -250,7 +233,25 @@ pub fn disks() -> Result<impl View> {
         );
         disks_view.add_item(label, get_info_block(&disk)?);
     }
-    disks_view.set_on_submit(select_disk);
+    disks_view.set_on_submit(|root, info| {
+        let gpt = select_disk(info);
+        match gpt {
+            Ok(gpt) => {
+                root.add_fullscreen_layer(parts(gpt, info));
+                setup_views(root);
+            }
+            Err(e) => {
+                let info = info.clone();
+                let dialog = error(e).button("New GPT", move |root| {
+                    let gpt = new_gpt(&info);
+                    root.pop_layer();
+                    root.add_fullscreen_layer(parts(gpt, &info));
+                    setup_views(root);
+                });
+                root.add_layer(dialog);
+            }
+        }
+    });
     let disks = info_box_panel(
         "Disks",
         disks_view.with_name("disks").full_screen(),
