@@ -17,8 +17,8 @@ mod actions;
 mod cli;
 mod interactive;
 
-use actions::{create_table, dump, restore, DeviceInfo};
-use cli::{add_partition, Args, Commands, End};
+use actions::{add_partition, create_table, dump, restore, DeviceInfo, End};
+use cli::{Args, Commands};
 use interactive::{components::error_quit, views::*};
 
 #[derive(Debug, Clone)]
