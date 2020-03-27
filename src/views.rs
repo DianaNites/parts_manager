@@ -20,7 +20,7 @@ pub type PartSelect = SelectView<Option<Partition>>;
 pub fn parts(gpt: Gpt, info: &Info) -> impl View {
     let name = &info.name;
     let block_size = info.block_size;
-    let disk_size = info.disk_size;
+    let remaining = gpt.remaining();
     let parts = gpt.partitions();
     let mut parts_view: PartSelect = selection();
     for (i, part) in parts.iter().enumerate() {
@@ -58,13 +58,7 @@ pub fn parts(gpt: Gpt, info: &Info) -> impl View {
                             last.map(|p| Offset(p.end().0 + 1))
                                 .unwrap_or_else(|| Size::from_mib(1).into()),
                         )
-                        .size(
-                            last.map(|_part| {
-                                // FIXME: Remaining
-                                disk_size
-                            })
-                            .unwrap_or(disk_size),
-                        )
+                        .size(remaining)
                         .partition_type(PartitionType::Unused)
                         .finish(block_size),
                 )
