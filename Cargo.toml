@@ -5,6 +5,10 @@ authors = ["Diana"]
 edition = "2018"
 description = "A GPT Partition Manager"
 
+[[bin]]
+name = "parts"
+path = "src/main.rs"
+
 [dependencies]
 parts = { path = "../_NiteLinux/Userspace/parts" }
 structopt = "0.3.12"
