@@ -8,7 +8,7 @@ use cursive::{
     traits::Resizable,
     utils::markup::StyledString,
     view::{Finder, Nameable, View},
-    views::{Button, Canvas, DummyView, LinearLayout, SelectView, TextView},
+    views::{Button, Canvas, DummyView, LinearLayout, ScrollView, SelectView, TextView},
     Cursive,
 };
 use linapi::system::devices::block::Block;
@@ -22,8 +22,11 @@ pub type FormatSelect = SelectView<cli::Format>;
 pub fn parts(gpt: Gpt, info: &Info) -> impl View {
     let name = &info.name;
     let block_size = info.block_size;
+    let device_size = info.disk_size;
+    let model = info.model.clone();
     let remaining = gpt.remaining();
-    let parts = gpt.partitions();
+    let parts = gpt.partitions(); //.to_vec();
+                                  // let gpt = Rc::new(gpt);
     let mut parts_view: PartSelect = selection();
     for (i, part) in parts.iter().enumerate() {
         let label = format!("Partition {}", i + 1);
@@ -97,7 +100,7 @@ pub fn parts(gpt: Gpt, info: &Info) -> impl View {
     //
     let mut buttons = LinearLayout::horizontal()
         .child(DummyView.full_width())
-        .child(Button::new("Dump", |root| {
+        .child(Button::new("Dump", move |root| {
             let mut view: FormatSelect = selection();
             for var in &cli::Format::variants() {
                 view.add_item(
@@ -105,21 +108,26 @@ pub fn parts(gpt: Gpt, info: &Info) -> impl View {
                     cli::Format::from_str(var).expect("Couldn't get variant from itself.."),
                 )
             }
-            view.set_on_submit(move |_root: &mut Cursive, _format: &cli::Format| {
-                // let mut view = TextView::new(
-                //     cli::dump(
-                //         *format,
-                //         cli::PartitionInfo::new(
-                //             &gpt,
-                //             block_size,
-                //             device_size,
-                //             model,
-                //             Default::default(),
-                //         ),
-                //     )
-                //     .unwrap(),
-                // );
-                // root.add_layer(panel("Dump File", view));
+            let gpt = gpt.clone();
+            let model = model.clone();
+            view.set_on_submit(move |root: &mut Cursive, format: &cli::Format| {
+                let gpt = &gpt;
+                let model = &model;
+                let view = TextView::new(
+                    cli::dump(
+                        *format,
+                        cli::PartitionInfo::new(
+                            &gpt,
+                            block_size,
+                            device_size,
+                            model.to_string(),
+                            Default::default(),
+                        ),
+                    )
+                    .unwrap(),
+                );
+                // FIXME: No way to get dump. Clipboard?
+                root.add_layer(panel("Dump File", ScrollView::new(view)));
             });
             let title = "Select format";
             root.add_layer(panel(title, view).min_width(title.len() + 6));
