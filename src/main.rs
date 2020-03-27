@@ -173,8 +173,6 @@ fn main() -> Result<()> {
             }
         }
     } else if args.interactive {
-        dbg!(&args); // FIXME: dbg
-                     //
         let mut root = Cursive::default();
         // Theme
         let mut theme = root.current_theme().clone();
