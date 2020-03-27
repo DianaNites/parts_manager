@@ -1,6 +1,6 @@
 use super::components::*;
 use crate::{
-    actions::{dump, DeviceInfo, Format},
+    actions::{dump, Format},
     get_info_block,
     Info,
 };
@@ -24,13 +24,7 @@ type PartSelect = SelectView<Option<Partition>>;
 type FormatSelect = SelectView<Format>;
 
 /// Dump the GPT Partition to a file
-fn dump_button(
-    root: &mut Cursive,
-    gpt: Gpt,
-    block_size: BlockSize,
-    device_size: Size,
-    model: String,
-) {
+fn dump_button(root: &mut Cursive, gpt: Gpt, info: Info) {
     let mut view: FormatSelect = selection();
     for var in &Format::variants() {
         view.add_item(
@@ -39,16 +33,7 @@ fn dump_button(
         )
     }
     view.set_on_submit(move |root: &mut Cursive, format: &Format| {
-        let text = match dump(
-            *format,
-            DeviceInfo::new(
-                &gpt,
-                block_size,
-                device_size,
-                model.clone(),
-                Default::default(),
-            ),
-        ) {
+        let text = match dump(&gpt, *format, &info) {
             Ok(t) => {
                 root.pop_layer();
                 t
@@ -123,8 +108,7 @@ pub fn setup_views(root: &mut Cursive) {
 pub fn parts(gpt: Gpt, info: &Info) -> impl View {
     let name = &info.name;
     let block_size = info.block_size;
-    let device_size = info.disk_size;
-    let model = info.model.clone();
+    let new_info = info.clone();
     let remaining = gpt.remaining();
     let parts = gpt.partitions();
     let mut parts_view: PartSelect = selection();
@@ -201,7 +185,7 @@ pub fn parts(gpt: Gpt, info: &Info) -> impl View {
     let mut buttons = LinearLayout::horizontal()
         .child(DummyView.full_width())
         .child(Button::new("Dump", move |root| {
-            dump_button(root, gpt.clone(), block_size, device_size, model.clone());
+            dump_button(root, gpt.clone(), new_info.clone());
         }))
         .child(DummyView)
         .child(Button::new("Test 2", |_| ()))

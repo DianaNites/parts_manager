@@ -1,4 +1,5 @@
 //! GPT editing actions, interface agnostic.
+use crate::Info;
 use anyhow::{Context, Result};
 use parts::{types::*, uuid::Uuid, Gpt, Partition, PartitionBuilder, PartitionType};
 use serde::{Deserialize, Serialize};
@@ -6,7 +7,6 @@ use std::{
     fs,
     io,
     io::{prelude::*, SeekFrom},
-    path::Path,
 };
 use structopt::clap::arg_enum;
 
@@ -18,6 +18,7 @@ arg_enum! {
     }
 }
 
+/// Either a relative or absolute end. Used by [`add_part`]
 #[derive(Debug, Copy, Clone)]
 pub enum End {
     Abs(Offset),
@@ -31,6 +32,7 @@ pub enum PartitionInfoVersion {
     V1,
 }
 
+/// Defaults to the latest version.
 impl Default for PartitionInfoVersion {
     fn default() -> Self {
         PartitionInfoVersion::V1
@@ -46,8 +48,9 @@ struct PartInfo {
     end: Offset,
 }
 
+/// Portable format to handle Gpt, device, and partitions.
 #[derive(Debug, Serialize, Deserialize)]
-pub struct DeviceInfo {
+struct DeviceInfo {
     #[serde(default)]
     version: PartitionInfoVersion,
 
@@ -105,39 +108,24 @@ impl DeviceInfo {
     }
 }
 
-/// Create and write a new empty Gpt
-pub fn create_table(
-    uuid: Option<Uuid>,
-    path: &Path,
-    block_size: BlockSize,
-    disk_size: Size,
-) -> Result<Gpt> {
-    let uuid = uuid.unwrap_or_else(Uuid::new_v4);
-    let gpt: Gpt = Gpt::new(uuid, disk_size, block_size);
-    let mut f = fs::OpenOptions::new()
-        .write(true)
-        .open(path)
-        .with_context(|| format!("Couldn't create file {}", path.display()))?;
-    gpt.to_bytes_with_func(
-        |o, buf| {
-            f.seek(SeekFrom::Start(o.0))?;
-            f.write_all(buf)?;
-            Ok(())
-        },
-        block_size,
-        disk_size,
-    )
-    .with_context(|| format!("Couldn't write GPT to {}", path.display()))?;
-    Ok(gpt)
-}
-
-pub fn dump(format: Format, info: DeviceInfo) -> Result<String> {
+/// Dump the Gpt to the portable [`DeviceInfo`] format.
+pub fn dump(gpt: &Gpt, format: Format, info: &Info) -> Result<String> {
+    let value = DeviceInfo::new(
+        &gpt,
+        info.block_size,
+        info.disk_size,
+        // FIXME: No actual need to clone here.
+        info.model.clone(),
+        Default::default(),
+    );
     match format {
-        Format::Json => Ok(serde_json::to_string_pretty(&info)?),
+        Format::Json => Ok(serde_json::to_string_pretty(&value)?),
     }
 }
 
-pub fn restore(format: Format) -> Result<Gpt> {
+/// Restore the Gpt from the portable [`DeviceInfo`] format.
+// FIXME: To minimal, can do invalid restores? Bigger function?
+pub fn restore(format: Format, _version: PartitionInfoVersion) -> Result<Gpt> {
     match format {
         Format::Json => {
             let info: DeviceInfo = serde_json::from_reader(io::stdin())?;
@@ -146,22 +134,73 @@ pub fn restore(format: Format) -> Result<Gpt> {
     }
 }
 
-pub fn add_partition(
+/// Create and return a new empty Gpt.
+pub fn new_gpt<U: Into<Option<Uuid>>>(uuid: U, info: &Info) -> Gpt {
+    Gpt::new(
+        uuid.into().unwrap_or_else(Uuid::new_v4),
+        info.disk_size,
+        info.block_size,
+    )
+}
+
+/// Read and return the Gpt from `source`.
+pub fn read_gpt<R: Read + Seek>(source: R, info: &Info) -> Result<Gpt> {
+    Ok(Gpt::from_reader(source, info.block_size)?)
+}
+
+/// Read the Gpt from `path`
+pub fn read_gpt_path(info: &Info) -> Result<Gpt> {
+    let source = fs::OpenOptions::new()
+        .read(true)
+        .write(true)
+        .open(&info.path)
+        .with_context(|| format!("Couldn't open {}", info.path.display()))?;
+    read_gpt(source, info)
+}
+
+/// Add a partition to the Gpt.
+pub fn add_part<U>(
     gpt: &mut Gpt,
+    info: &Info,
+    uuid: U,
+    partition_type: Uuid,
     start: Offset,
     end: End,
-    partition_type: Uuid,
-    block_size: BlockSize,
-    uuid: Uuid,
-) -> Result<()> {
-    let part = PartitionBuilder::new(uuid)
+) -> Result<()>
+where
+    U: Into<Option<Uuid>>,
+{
+    let part = PartitionBuilder::new(uuid.into().unwrap_or_else(Uuid::new_v4))
         .start(start)
         .partition_type(PartitionType::from_uuid(partition_type));
     let part = match end {
         End::Abs(end) => part.end(end),
         End::Rel(size) => part.size(size),
     };
-    gpt.add_partition(part.finish(block_size))?;
-    //
+    gpt.add_partition(part.finish(info.block_size))?;
+    Ok(())
+}
+
+/// Write the Gpt to `dest`.
+pub fn write_gpt<W: Write + Seek>(gpt: &Gpt, mut dest: W, info: &Info) -> Result<()> {
+    gpt.to_bytes_with_func(
+        |i, buf| {
+            dest.seek(SeekFrom::Start(i.0))?;
+            dest.write_all(buf)?;
+            Ok(())
+        },
+        info.block_size,
+        info.disk_size,
+    )?;
+    Ok(())
+}
+
+/// Write the Gpt to `path`
+pub fn write_gpt_path(gpt: &Gpt, info: &Info) -> Result<()> {
+    let dest = fs::OpenOptions::new()
+        .write(true)
+        .open(&info.path)
+        .with_context(|| format!("Couldn't create {}", info.path.display()))?;
+    write_gpt(gpt, dest, info)?;
     Ok(())
 }
