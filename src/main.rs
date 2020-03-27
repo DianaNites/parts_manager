@@ -1,8 +1,5 @@
 use anyhow::{anyhow, Result};
-use cursive::{
-    theme::{BaseColor::*, Color::*, PaletteColor::*},
-    Cursive,
-};
+use cursive::Cursive;
 use linapi::system::devices::block::{Block, Error};
 use parts::{types::*, uuid::Uuid, Gpt};
 use std::{ffi::OsStr, fs, path::PathBuf};
@@ -81,7 +78,7 @@ fn get_info_cli(args: &Args) -> Result<Info> {
 fn main() -> Result<()> {
     let interactive = cli::handle_args()?;
     if interactive {
-        // TODO: interactive
+        interactive::handle_tui()?;
     }
     return Ok(());
     //
@@ -89,13 +86,6 @@ fn main() -> Result<()> {
     //
     if args.interactive {
         let mut root = Cursive::default();
-        // Theme
-        let mut theme = root.current_theme().clone();
-        theme.palette[Background] = TerminalDefault;
-        theme.palette[View] = TerminalDefault;
-        theme.palette[Primary] = Dark(White);
-        theme.palette[Tertiary] = Dark(White);
-        root.set_theme(theme);
         // User entry point
         if args.device == OsStr::new("Auto") {
             root.add_fullscreen_layer(disks()?);
