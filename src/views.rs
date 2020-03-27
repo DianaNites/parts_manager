@@ -78,6 +78,39 @@ fn dump_button(
     root.add_layer(panel(title, view).min_width(title.len() + 6));
 }
 
+fn select_disk(root: &mut Cursive, info: &Info) {
+    let file = fs::OpenOptions::new()
+        .read(true)
+        .write(true)
+        .open(&info.path);
+    match file.with_context(|| format!("Couldn't open: `{}`", info.path.display())) {
+        Ok(file) => {
+            let gpt: Result<Gpt, _> = Gpt::from_reader(file, info.block_size);
+            match gpt {
+                Ok(gpt) => {
+                    root.add_fullscreen_layer(parts(gpt, info));
+                    root.call_on_name("parts", |v: &mut PartSelect| v.set_selection(0))
+                        .expect("Missing callback")(root);
+                }
+                Err(e) => {
+                    let info = info.clone();
+                    let dialog = error(e).button("New GPT", move |root| {
+                        let gpt: Gpt = Gpt::new(Uuid::new_v4(), info.disk_size, info.block_size);
+                        root.pop_layer();
+                        root.add_fullscreen_layer(parts(gpt, &info));
+                        root.call_on_name("parts", |v: &mut PartSelect| v.set_selection(0))
+                            .expect("Missing callback")(root);
+                    });
+                    root.add_layer(dialog);
+                }
+            }
+        }
+        Err(e) => {
+            root.add_layer(error(e));
+        }
+    }
+}
+
 /// Partition editing view.
 pub fn parts(gpt: Gpt, info: &Info) -> impl View {
     let name = &info.name;
@@ -196,40 +229,7 @@ pub fn disks() -> Result<impl View> {
         );
         disks_view.add_item(label, get_info_block(&disk)?);
     }
-    disks_view.set_on_submit(|root, info| {
-        let file = fs::OpenOptions::new()
-            .read(true)
-            .write(true)
-            .open(&info.path);
-        match file.with_context(|| format!("Couldn't open: `{}`", info.path.display())) {
-            Ok(file) => {
-                let gpt: Result<Gpt, _> = Gpt::from_reader(file, info.block_size);
-                match gpt {
-                    Ok(gpt) => {
-                        root.add_fullscreen_layer(parts(gpt, info));
-                        root.call_on_name("parts", |v: &mut PartSelect| v.set_selection(0))
-                            .expect("Missing callback")(root);
-                    }
-                    Err(e) => {
-                        let info = info.clone();
-                        let dialog = error(e).button("New GPT", move |root| {
-                            let gpt: Gpt =
-                                Gpt::new(Uuid::new_v4(), info.disk_size, info.block_size);
-                            root.pop_layer();
-                            root.add_fullscreen_layer(parts(gpt, &info));
-                            root.call_on_name("parts", |v: &mut PartSelect| v.set_selection(0))
-                                .expect("Missing callback")(root);
-                        });
-                        root.add_layer(dialog);
-                    }
-                }
-            }
-            Err(e) => {
-                root.add_layer(error(e));
-            }
-        }
-        //
-    });
+    disks_view.set_on_submit(select_disk);
     let disks = info_box_panel(
         "Disks",
         disks_view.with_name("disks").full_screen(),
