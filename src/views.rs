@@ -132,11 +132,11 @@ pub fn parts(gpt: Gpt, info: &Info) -> impl View {
         root.call_on_name("part_name", |v: &mut TextView| {
             v.set_content(format!("Name: {}", part.name()));
         })
-        .unwrap();
+        .expect("Missing callback");
         root.call_on_name("part_start", |v: &mut TextView| {
             v.set_content(format!("Start: {}", part.start()));
         })
-        .unwrap();
+        .expect("Missing callback");
         root.call_on_name("part_size", |v: &mut TextView| {
             v.set_content(format!(
                 "Size: {}",
@@ -144,15 +144,15 @@ pub fn parts(gpt: Gpt, info: &Info) -> impl View {
                     .get_appropriate_unit(true)
             ));
         })
-        .unwrap();
+        .expect("Missing callback");
         root.call_on_name("part_uuid", |v: &mut TextView| {
             v.set_content(format!("UUID: {}", part.uuid()));
         })
-        .unwrap();
+        .expect("Missing callback");
         root.call_on_name("part_type", |v: &mut TextView| {
             v.set_content(format!("Type: {}", part.partition_type()));
         })
-        .unwrap();
+        .expect("Missing callback");
     });
     //
     let mut buttons = LinearLayout::horizontal()
@@ -205,7 +205,7 @@ pub fn disks() -> Result<impl View> {
                     Ok(gpt) => {
                         root.add_fullscreen_layer(parts(gpt, info));
                         root.call_on_name("parts", |v: &mut PartSelect| v.set_selection(0))
-                            .unwrap()(&mut root);
+                            .expect("Missing callback")(&mut root);
                     }
                     Err(e) => {
                         let info = info.clone();
@@ -215,7 +215,7 @@ pub fn disks() -> Result<impl View> {
                             root.pop_layer();
                             root.add_fullscreen_layer(parts(gpt, &info));
                             root.call_on_name("parts", |v: &mut PartSelect| v.set_selection(0))
-                                .unwrap()(&mut root);
+                                .expect("Missing callback")(&mut root);
                         });
                         root.add_layer(dialog);
                     }

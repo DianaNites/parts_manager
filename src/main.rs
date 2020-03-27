@@ -90,7 +90,7 @@ fn main() -> Result<()> {
     //
     if args.cmd.is_some() {
         let info = get_info_cli(&args)?;
-        let cmd = args.cmd.unwrap();
+        let cmd = args.cmd.expect("Missing subcommand");
         //
         let path = info.path;
         let block_size = info.block_size;
@@ -187,7 +187,7 @@ fn main() -> Result<()> {
             // Disk Info box will start empty, make sure callback is called and it's
             // set.
             root.call_on_name("disks", |v: &mut DiskSelect| v.set_selection(0))
-                .unwrap()(&mut root);
+                .expect("Missing callback")(&mut root);
         } else {
             let info = get_info_cli(&args)?;
             let gpt: Result<Gpt, _> = Gpt::from_reader(
@@ -201,7 +201,7 @@ fn main() -> Result<()> {
                 Ok(gpt) => {
                     root.add_fullscreen_layer(parts(gpt, &info));
                     root.call_on_name("parts", |v: &mut PartSelect| v.set_selection(0))
-                        .unwrap()(&mut root);
+                        .expect("Missing callback")(&mut root);
                 }
                 Err(e) => {
                     root.add_layer(error_quit(e).button("New Gpt", move |mut root| {
@@ -209,7 +209,7 @@ fn main() -> Result<()> {
                         root.pop_layer();
                         root.add_fullscreen_layer(parts(gpt, &info));
                         root.call_on_name("parts", |v: &mut PartSelect| v.set_selection(0))
-                            .unwrap()(&mut root);
+                            .expect("Missing callback")(&mut root);
                     }));
                 }
             };

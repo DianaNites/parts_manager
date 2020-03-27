@@ -79,9 +79,9 @@ pub fn focused_view<V: View>(view: V) -> Canvas<V> {
 pub fn horizontal_forward<BV: View, V: View>(view: V, name: &str) -> impl View {
     let name = name.to_string();
     Canvas::wrap(view).with_on_event(move |s, e| match e {
-        Event::Key(Key::Right) | Event::Key(Key::Left) | Event::Key(Key::Enter) => {
-            s.call_on_name(&name, |b: &mut BV| b.on_event(e)).unwrap()
-        }
+        Event::Key(Key::Right) | Event::Key(Key::Left) | Event::Key(Key::Enter) => s
+            .call_on_name(&name, |b: &mut BV| b.on_event(e))
+            .expect("Missing callback"),
         _ => s.on_event(e),
     })
 }
