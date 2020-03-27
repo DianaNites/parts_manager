@@ -1,4 +1,5 @@
 use super::{components::*, get_info_block, Info};
+use crate::cli;
 use anyhow::{Context, Result};
 use byte_unit::Byte;
 use cursive::{
@@ -12,10 +13,11 @@ use cursive::{
 };
 use linapi::system::devices::block::Block;
 use parts::{types::*, uuid::Uuid, Gpt, Partition, PartitionBuilder, PartitionType};
-use std::fs;
+use std::{fs, str::FromStr};
 
 pub type DiskSelect = SelectView<Info>;
 pub type PartSelect = SelectView<Option<Partition>>;
+pub type FormatSelect = SelectView<cli::Format>;
 
 pub fn parts(gpt: Gpt, info: &Info) -> impl View {
     let name = &info.name;
@@ -93,25 +95,54 @@ pub fn parts(gpt: Gpt, info: &Info) -> impl View {
         .unwrap();
     });
     //
-    Canvas::wrap(info_box_panel_footer(
-        &format!("Partitions ({})", name),
-        parts_view.with_name("parts").full_screen(),
-        info,
-        Canvas::wrap(
-            LinearLayout::horizontal()
-                .child(DummyView.full_width())
-                .child(Button::new("Test", |_| ()))
-                .child(DummyView)
-                .child(Button::new("Test 2", |_| ()))
-                .child(DummyView.full_width())
-                .with_name("buttons"),
-        )
+    let mut buttons = LinearLayout::horizontal()
+        .child(DummyView.full_width())
+        .child(Button::new("Dump", |root| {
+            let mut view: FormatSelect = selection();
+            for var in &cli::Format::variants() {
+                view.add_item(
+                    *var,
+                    cli::Format::from_str(var).expect("Couldn't get variant from itself.."),
+                )
+            }
+            view.set_on_submit(move |_root: &mut Cursive, _format: &cli::Format| {
+                // let mut view = TextView::new(
+                //     cli::dump(
+                //         *format,
+                //         cli::PartitionInfo::new(
+                //             &gpt,
+                //             block_size,
+                //             device_size,
+                //             model,
+                //             Default::default(),
+                //         ),
+                //     )
+                //     .unwrap(),
+                // );
+                // root.add_layer(panel("Dump File", view));
+            });
+            let title = "Select format";
+            root.add_layer(panel(title, view).min_width(title.len() + 6));
+        }))
+        .child(DummyView)
+        .child(Button::new("Test 2", |_| ()))
+        .child(DummyView.full_width());
+    buttons
+        .set_focus_index(1)
+        .expect("First button didn't accept focus");
+    let buttons = Canvas::wrap(buttons.with_name("buttons"))
         .with_take_focus(|_, _| false)
         .with_draw(|s, p| {
             let mut p = p.clone();
             p.focused = true;
             s.draw(&p)
-        }),
+        });
+    //
+    Canvas::wrap(info_box_panel_footer(
+        &format!("Partitions ({})", name),
+        parts_view.with_name("parts").full_screen(),
+        info,
+        buttons,
     ))
     .with_on_event(|s, e| match e {
         Event::Key(Key::Right) | Event::Key(Key::Left) | Event::Key(Key::Enter) => s
