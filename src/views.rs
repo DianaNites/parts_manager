@@ -196,7 +196,6 @@ pub fn disks() -> Result<impl View> {
         );
         disks_view.add_item(label, get_info_block(&disk)?);
     }
-    let info = vec![DummyView];
     disks_view.set_on_submit(|mut root, info| {
         let file = fs::OpenOptions::new()
             .read(true)
@@ -231,6 +230,10 @@ pub fn disks() -> Result<impl View> {
         }
         //
     });
-    let disks = info_box_panel("Disks", disks_view.with_name("disks").full_screen(), info);
+    let disks = info_box_panel(
+        "Disks",
+        disks_view.with_name("disks").full_screen(),
+        vec![DummyView],
+    );
     Ok(disks)
 }
