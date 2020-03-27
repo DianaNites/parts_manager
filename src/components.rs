@@ -3,7 +3,7 @@ use cursive::{
     align::HAlign,
     traits::Resizable,
     view::{IntoBoxedView, View},
-    views::{Dialog, LinearLayout, Panel, ScrollView, SelectView},
+    views::{Canvas, Dialog, LinearLayout, Panel, ScrollView, SelectView},
 };
 
 pub fn selection<T: 'static>() -> SelectView<T> {
@@ -56,4 +56,15 @@ pub fn error_quit<E: Into<Error>>(e: E) -> Dialog {
     Dialog::text(format!("{:?}", e))
         .title("Error")
         .button("Ok", |root| root.quit())
+}
+
+/// A view which is always in focus, and which never takes focus from elsewhere.
+pub fn focused_view<V: View>(view: V) -> Canvas<V> {
+    Canvas::wrap(view)
+        .with_take_focus(|_, _| false)
+        .with_draw(|s, p| {
+            let mut p = p.clone();
+            p.focused = true;
+            s.draw(&p)
+        })
 }

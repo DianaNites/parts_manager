@@ -138,13 +138,7 @@ pub fn parts(gpt: Gpt, info: &Info) -> impl View {
     buttons
         .set_focus_index(1)
         .expect("First button didn't accept focus");
-    let buttons = Canvas::wrap(buttons.with_name("buttons"))
-        .with_take_focus(|_, _| false)
-        .with_draw(|s, p| {
-            let mut p = p.clone();
-            p.focused = true;
-            s.draw(&p)
-        });
+    let buttons = focused_view(buttons.with_name("buttons"));
     //
     Canvas::wrap(info_box_panel_footer(
         &format!("Partitions ({})", name),
