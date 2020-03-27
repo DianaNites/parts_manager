@@ -1,17 +1,11 @@
 //! CLI Argument handling code
+use crate::actions::Format;
 use parts::uuid::Uuid;
 use std::path::PathBuf;
 use structopt::{
-    clap::{arg_enum, AppSettings, Shell},
+    clap::{AppSettings, Shell},
     StructOpt,
 };
-
-arg_enum! {
-    #[derive(Debug, Copy, Clone)]
-    pub enum Format {
-        Json,
-    }
-}
 
 /// Modern GPT Partition editor
 #[derive(Clone, Debug, StructOpt)]

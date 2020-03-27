@@ -1,4 +1,5 @@
 //! Code for the CLI Interface
+use crate::actions::Format;
 use anyhow::Result;
 use parts::{types::*, uuid::Uuid, Gpt, Partition, PartitionBuilder, PartitionType};
 use serde::{Deserialize, Serialize};

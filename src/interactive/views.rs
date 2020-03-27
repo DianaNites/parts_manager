@@ -1,5 +1,5 @@
 use super::components::*;
-use crate::{cli, get_info_block, Info};
+use crate::{actions::Format, cli, get_info_block, Info};
 use anyhow::{Context, Result};
 use byte_unit::Byte;
 use cursive::{
@@ -17,7 +17,7 @@ use std::{fs, path::Path, str::FromStr};
 
 type DiskSelect = SelectView<Info>;
 type PartSelect = SelectView<Option<Partition>>;
-type FormatSelect = SelectView<cli::Format>;
+type FormatSelect = SelectView<Format>;
 
 /// Dump the GPT Partition to a file
 fn dump_button(
@@ -28,13 +28,13 @@ fn dump_button(
     model: String,
 ) {
     let mut view: FormatSelect = selection();
-    for var in &cli::Format::variants() {
+    for var in &Format::variants() {
         view.add_item(
             *var,
-            cli::Format::from_str(var).expect("Couldn't get variant from itself.."),
+            Format::from_str(var).expect("Couldn't get variant from itself.."),
         )
     }
-    view.set_on_submit(move |root: &mut Cursive, format: &cli::Format| {
+    view.set_on_submit(move |root: &mut Cursive, format: &Format| {
         let text = match cli::dump(
             *format,
             cli::PartitionInfo::new(
