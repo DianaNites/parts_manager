@@ -1,4 +1,4 @@
-//! Handle CLI stuff
+//! Code for the CLI Interface
 use anyhow::Result;
 use parts::{types::*, uuid::Uuid, Gpt, Partition, PartitionBuilder, PartitionType};
 use serde::{Deserialize, Serialize};
