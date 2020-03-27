@@ -35,8 +35,7 @@ fn dump_button(
         )
     }
     view.set_on_submit(move |root: &mut Cursive, format: &cli::Format| {
-        root.pop_layer();
-        let text = cli::dump(
+        let text = match cli::dump(
             *format,
             cli::PartitionInfo::new(
                 &gpt,
@@ -45,8 +44,19 @@ fn dump_button(
                 model.clone(),
                 Default::default(),
             ),
-        )
-        .unwrap();
+        ) {
+            Ok(t) => {
+                root.pop_layer();
+                t
+            }
+            Err(e) => {
+                root.add_layer(error(e).button("Cancel", |root| {
+                    root.pop_layer();
+                    root.pop_layer();
+                }));
+                return;
+            }
+        };
         let view = EditView::new()
             .on_submit(move |root, s| {
                 match fs::write(Path::new(s), &text) {
