@@ -34,6 +34,7 @@ fn dump_button(
         )
     }
     view.set_on_submit(move |root: &mut Cursive, format: &cli::Format| {
+        root.pop_layer();
         let view = TextView::new(
             cli::dump(
                 *format,
@@ -47,8 +48,9 @@ fn dump_button(
             )
             .unwrap(),
         );
+        let view = ScrollView::new(view);
         // FIXME: No way to get dump. Clipboard?
-        root.add_layer(panel("Dump File", ScrollView::new(view)));
+        root.add_layer(panel("Dump File", view));
     });
     let title = "Select format";
     root.add_layer(panel(title, view).min_width(title.len() + 6));
