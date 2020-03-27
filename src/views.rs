@@ -19,6 +19,7 @@ pub type DiskSelect = SelectView<Info>;
 pub type PartSelect = SelectView<Option<Partition>>;
 pub type FormatSelect = SelectView<cli::Format>;
 
+/// Dump the GPT Partition to a file
 fn dump_button(
     root: &mut Cursive,
     gpt: Gpt,
@@ -77,6 +78,7 @@ fn dump_button(
     root.add_layer(panel(title, view).min_width(title.len() + 6));
 }
 
+/// Partition editing view.
 pub fn parts(gpt: Gpt, info: &Info) -> impl View {
     let name = &info.name;
     let block_size = info.block_size;
@@ -179,6 +181,8 @@ pub fn parts(gpt: Gpt, info: &Info) -> impl View {
     )
 }
 
+/// Returns a view that allows the user to select a disk,
+/// then calling [`parts`].
 pub fn disks() -> Result<impl View> {
     let mut disks: Vec<Block> = Block::get_connected().context("Couldn't get connected devices")?;
     disks.sort_unstable_by(|a, b| a.name().cmp(b.name()));
