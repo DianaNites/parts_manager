@@ -14,7 +14,7 @@ use structopt::{
 };
 
 arg_enum! {
-    #[derive(Debug, Clone)]
+    #[derive(Debug, Copy, Clone)]
     pub enum Format {
         Json,
     }
