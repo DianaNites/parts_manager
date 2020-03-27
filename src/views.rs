@@ -34,8 +34,6 @@ fn dump_button(
         )
     }
     view.set_on_submit(move |root: &mut Cursive, format: &cli::Format| {
-        let gpt = &gpt;
-        let model = &model;
         let view = TextView::new(
             cli::dump(
                 *format,
@@ -43,7 +41,7 @@ fn dump_button(
                     &gpt,
                     block_size,
                     device_size,
-                    model.to_string(),
+                    model.clone(),
                     Default::default(),
                 ),
             )
