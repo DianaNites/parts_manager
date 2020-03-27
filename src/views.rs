@@ -19,6 +19,43 @@ pub type DiskSelect = SelectView<Info>;
 pub type PartSelect = SelectView<Option<Partition>>;
 pub type FormatSelect = SelectView<cli::Format>;
 
+fn dump_button(
+    root: &mut Cursive,
+    gpt: Gpt,
+    block_size: BlockSize,
+    device_size: Size,
+    model: String,
+) {
+    let mut view: FormatSelect = selection();
+    for var in &cli::Format::variants() {
+        view.add_item(
+            *var,
+            cli::Format::from_str(var).expect("Couldn't get variant from itself.."),
+        )
+    }
+    view.set_on_submit(move |root: &mut Cursive, format: &cli::Format| {
+        let gpt = &gpt;
+        let model = &model;
+        let view = TextView::new(
+            cli::dump(
+                *format,
+                cli::PartitionInfo::new(
+                    &gpt,
+                    block_size,
+                    device_size,
+                    model.to_string(),
+                    Default::default(),
+                ),
+            )
+            .unwrap(),
+        );
+        // FIXME: No way to get dump. Clipboard?
+        root.add_layer(panel("Dump File", ScrollView::new(view)));
+    });
+    let title = "Select format";
+    root.add_layer(panel(title, view).min_width(title.len() + 6));
+}
+
 pub fn parts(gpt: Gpt, info: &Info) -> impl View {
     let name = &info.name;
     let block_size = info.block_size;
@@ -101,36 +138,7 @@ pub fn parts(gpt: Gpt, info: &Info) -> impl View {
     let mut buttons = LinearLayout::horizontal()
         .child(DummyView.full_width())
         .child(Button::new("Dump", move |root| {
-            let mut view: FormatSelect = selection();
-            for var in &cli::Format::variants() {
-                view.add_item(
-                    *var,
-                    cli::Format::from_str(var).expect("Couldn't get variant from itself.."),
-                )
-            }
-            let gpt = gpt.clone();
-            let model = model.clone();
-            view.set_on_submit(move |root: &mut Cursive, format: &cli::Format| {
-                let gpt = &gpt;
-                let model = &model;
-                let view = TextView::new(
-                    cli::dump(
-                        *format,
-                        cli::PartitionInfo::new(
-                            &gpt,
-                            block_size,
-                            device_size,
-                            model.to_string(),
-                            Default::default(),
-                        ),
-                    )
-                    .unwrap(),
-                );
-                // FIXME: No way to get dump. Clipboard?
-                root.add_layer(panel("Dump File", ScrollView::new(view)));
-            });
-            let title = "Select format";
-            root.add_layer(panel(title, view).min_width(title.len() + 6));
+            dump_button(root, gpt.clone(), block_size, device_size, model.clone());
         }))
         .child(DummyView)
         .child(Button::new("Test 2", |_| ()))
