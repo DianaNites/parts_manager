@@ -3,17 +3,18 @@ use crate::cli;
 use anyhow::{Context, Result};
 use byte_unit::Byte;
 use cursive::{
+    align::HAlign,
     event::{Event, Key},
     theme::{BaseColor, Color, ColorStyle, ColorType, Effect, Style},
     traits::Resizable,
     utils::markup::StyledString,
     view::{Finder, Nameable, View},
-    views::{Button, Canvas, DummyView, LinearLayout, ScrollView, SelectView, TextView},
+    views::{Button, Canvas, Dialog, DummyView, EditView, LinearLayout, SelectView, TextView},
     Cursive,
 };
 use linapi::system::devices::block::Block;
 use parts::{types::*, uuid::Uuid, Gpt, Partition, PartitionBuilder, PartitionType};
-use std::{fs, str::FromStr};
+use std::{fs, path::Path, str::FromStr};
 
 pub type DiskSelect = SelectView<Info>;
 pub type PartSelect = SelectView<Option<Partition>>;
@@ -35,22 +36,33 @@ fn dump_button(
     }
     view.set_on_submit(move |root: &mut Cursive, format: &cli::Format| {
         root.pop_layer();
-        let view = TextView::new(
-            cli::dump(
-                *format,
-                cli::PartitionInfo::new(
-                    &gpt,
-                    block_size,
-                    device_size,
-                    model.clone(),
-                    Default::default(),
-                ),
-            )
-            .unwrap(),
-        );
-        let view = ScrollView::new(view);
-        // FIXME: No way to get dump. Clipboard?
-        root.add_layer(panel("Dump File", view));
+        let text = cli::dump(
+            *format,
+            cli::PartitionInfo::new(
+                &gpt,
+                block_size,
+                device_size,
+                model.clone(),
+                Default::default(),
+            ),
+        )
+        .unwrap();
+        let view = EditView::new()
+            .on_submit(move |root, s| {
+                match fs::write(Path::new(s), &text) {
+                    Ok(_) => {
+                        root.pop_layer();
+                    }
+                    Err(e) => root.add_layer(error(e)),
+                }
+                //
+            })
+            .min_width(20);
+        let view = Dialog::around(view)
+            .dismiss_button("Cancel")
+            .title("Dump File")
+            .title_position(HAlign::Left);
+        root.add_layer(view);
     });
     let title = "Select format";
     root.add_layer(panel(title, view).min_width(title.len() + 6));
