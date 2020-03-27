@@ -184,10 +184,7 @@ fn main() -> Result<()> {
         // User entry point
         if args.device == OsStr::new("Auto") {
             root.add_fullscreen_layer(disks()?);
-            // Disk Info box will start empty, make sure callback is called and it's
-            // set.
-            root.call_on_name("disks", |v: &mut DiskSelect| v.set_selection(0))
-                .expect("Missing callback")(&mut root);
+            setup_views(&mut root);
         } else {
             let info = get_info_cli(&args)?;
             let gpt: Result<Gpt, _> = Gpt::from_reader(
@@ -200,16 +197,14 @@ fn main() -> Result<()> {
             match gpt {
                 Ok(gpt) => {
                     root.add_fullscreen_layer(parts(gpt, &info));
-                    root.call_on_name("parts", |v: &mut PartSelect| v.set_selection(0))
-                        .expect("Missing callback")(&mut root);
+                    setup_views(&mut root);
                 }
                 Err(e) => {
                     root.add_layer(error_quit(e).button("New Gpt", move |mut root| {
                         let gpt: Gpt = Gpt::new(Uuid::new_v4(), info.disk_size, info.block_size);
                         root.pop_layer();
                         root.add_fullscreen_layer(parts(gpt, &info));
-                        root.call_on_name("parts", |v: &mut PartSelect| v.set_selection(0))
-                            .expect("Missing callback")(&mut root);
+                        setup_views(&mut root);
                     }));
                 }
             };

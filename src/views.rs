@@ -15,9 +15,9 @@ use linapi::system::devices::block::Block;
 use parts::{types::*, uuid::Uuid, Gpt, Partition, PartitionBuilder, PartitionType};
 use std::{fs, path::Path, str::FromStr};
 
-pub type DiskSelect = SelectView<Info>;
-pub type PartSelect = SelectView<Option<Partition>>;
-pub type FormatSelect = SelectView<cli::Format>;
+type DiskSelect = SelectView<Info>;
+type PartSelect = SelectView<Option<Partition>>;
+type FormatSelect = SelectView<cli::Format>;
 
 /// Dump the GPT Partition to a file
 fn dump_button(
@@ -89,8 +89,7 @@ fn select_disk(root: &mut Cursive, info: &Info) {
             match gpt {
                 Ok(gpt) => {
                     root.add_fullscreen_layer(parts(gpt, info));
-                    root.call_on_name("parts", |v: &mut PartSelect| v.set_selection(0))
-                        .expect("Missing callback")(root);
+                    setup_views(root);
                 }
                 Err(e) => {
                     let info = info.clone();
@@ -98,8 +97,7 @@ fn select_disk(root: &mut Cursive, info: &Info) {
                         let gpt: Gpt = Gpt::new(Uuid::new_v4(), info.disk_size, info.block_size);
                         root.pop_layer();
                         root.add_fullscreen_layer(parts(gpt, &info));
-                        root.call_on_name("parts", |v: &mut PartSelect| v.set_selection(0))
-                            .expect("Missing callback")(root);
+                        setup_views(root);
                     });
                     root.add_layer(dialog);
                 }
@@ -108,6 +106,29 @@ fn select_disk(root: &mut Cursive, info: &Info) {
         Err(e) => {
             root.add_layer(error(e));
         }
+    }
+}
+
+/// Helper to setup views due to cursive oddities
+pub fn setup_views(root: &mut Cursive) {
+    // Make sure the selection callback is run so the info box is populated.
+    //
+    // If theres a current selection, like when running this for `parts`, don't
+    // change it.
+    //
+    // This may be None, when the user provides a path.
+    if let Some(cb) = root.call_on_name("disks", |v: &mut DiskSelect| {
+        v.set_selection(v.selected_id().unwrap_or(0))
+    }) {
+        cb(root)
+    }
+
+    // Make sure the parts callback is run. This won't always exist, for example
+    // when setting up `disks`.
+    //
+    // `disks` will call this itself.
+    if let Some(cb) = root.call_on_name("parts", |v: &mut PartSelect| v.set_selection(0)) {
+        cb(root);
     }
 }
 
