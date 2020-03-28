@@ -33,11 +33,11 @@ fn get_info_cli(args: &Args) -> Result<Info> {
                     0
                 } else {
                     block
-                        .as_ref()
-                        .map(|b| b.logical_block_size())
+                        .as_ref() //
                         .ok_or_else(|| {
                             anyhow!("Couldn't automatically determine logical block size")
-                        })??
+                        })?
+                        .logical_block_size()?
                 }
             }
         }),
