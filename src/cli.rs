@@ -21,6 +21,14 @@ fn get_info_cli(args: &Args) -> Result<Info> {
         block_size: BlockSize(match args.block {
             Some(s) => s,
             None => {
+                // Needed because `block_size` can be None for Restore,
+                // and clap will ensure that it's provided if `override_block`
+                // is passed.
+                //
+                // Example cmd: `cargo run -- /tmp/disk2.img restore < /tmp/test`
+                // Which MUST work correctly.
+                //
+                // For other commands we want the default auto behavior.
                 if let Some(Commands::Restore { .. }) = args.cmd {
                     0
                 } else {
