@@ -1,63 +1,12 @@
 //! Code for the CLI Interface
 use crate::{actions::*, Info};
-use anyhow::{anyhow, Result};
-use linapi::system::devices::block::{Block, Error};
+use anyhow::Result;
 use parts::types::*;
 use std::{ffi::OsStr, fs};
 use structopt::StructOpt;
 
 pub mod args;
 use args::*;
-
-/// Get information on a device from CLI args
-fn get_info_cli(args: &Args) -> Result<Info> {
-    let block = match Block::from_dev(&args.device) {
-        Ok(block) => Some(block),
-        Err(Error::InvalidArg(_)) => None,
-        Err(e) => return Err(e.into()),
-    };
-    Ok(Info {
-        path: args.device.clone(),
-        block_size: BlockSize(match args.block {
-            Some(s) => s,
-            None => {
-                // Needed because `block_size` can be None for Restore,
-                // and clap will ensure that it's provided if `override_block`
-                // is passed.
-                //
-                // Example cmd: `cargo run -- /tmp/disk2.img restore < /tmp/test`
-                // Which MUST work correctly.
-                //
-                // For other commands we want the default auto behavior.
-                if let Some(Commands::Restore { .. }) = args.cmd {
-                    0
-                } else {
-                    block
-                        .as_ref() //
-                        .ok_or_else(|| {
-                            anyhow!("Couldn't automatically determine logical block size")
-                        })?
-                        .logical_block_size()?
-                }
-            }
-        }),
-        disk_size: Size::from_bytes(match block.as_ref() {
-            Some(block) => block.size()?,
-            None => fs::metadata(&args.device)?.len(),
-        }),
-        model: match block.as_ref() {
-            Some(block) => block.model()?.unwrap_or_default(),
-            None => String::new(),
-        },
-        name: args
-            .device
-            .file_stem()
-            .ok_or_else(|| anyhow!("Invalid device file"))?
-            .to_str()
-            .ok_or_else(|| anyhow!("Invalid UTF-8 in device file name"))?
-            .to_owned(),
-    })
-}
 
 /// Handle CLI subcommand actions.
 fn handle_cmd(cmd: Commands, info: Info) -> Result<()> {
@@ -135,7 +84,7 @@ pub enum CliAction {
 pub fn handle_args() -> Result<CliAction> {
     let args: Args = Args::from_args();
     if args.cmd.is_some() {
-        let info = get_info_cli(&args)?;
+        let info = Info::new_cli(&args)?;
         let cmd = args.cmd.expect("Missing subcommand");
         handle_cmd(cmd, info)?;
         Ok(CliAction::Quit)
@@ -143,7 +92,7 @@ pub fn handle_args() -> Result<CliAction> {
         if args.device == OsStr::new("Auto") {
             Ok(CliAction::Interactive(None))
         } else {
-            let info = get_info_cli(&args)?;
+            let info = Info::new_cli(&args)?;
             Ok(CliAction::Interactive(Some(info)))
         }
     } else {
