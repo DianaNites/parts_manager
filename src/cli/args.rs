@@ -89,10 +89,6 @@ pub enum Commands {
         #[structopt(long)]
         end: Option<u64>,
 
-        /// Partition type Uuid. Defaults to Linux Filesystem Data
-        #[structopt(short, long, default_value = "0FC63DAF-8483-4772-8E79-3D69D8477DE4")]
-        partition_type: Uuid,
-
         /// Partition size, in bytes.
         ///
         /// You can use the KiB, MiB, GiB, and TiB suffixes here.
@@ -104,6 +100,10 @@ pub enum Commands {
         /// If not specified, uses remaining space.
         #[structopt(long, conflicts_with("end"), parse(try_from_str = parse_size))]
         size: Option<u64>,
+
+        /// Partition type Uuid. Defaults to Linux Filesystem Data
+        #[structopt(short, long, default_value = "0FC63DAF-8483-4772-8E79-3D69D8477DE4")]
+        partition_type: Uuid,
 
         /// Use this specific UUID instead of generating a new one.
         ///
