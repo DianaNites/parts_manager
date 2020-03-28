@@ -1,6 +1,6 @@
 use anyhow::{anyhow, Result};
 use cursive::Cursive;
-use linapi::system::devices::block::{Block, Error};
+use linapi::system::devices::block::Block;
 use parts::{types::*, uuid::Uuid, Gpt};
 use std::{ffi::OsStr, fs, path::PathBuf};
 use structopt::StructOpt;
@@ -9,7 +9,7 @@ mod actions;
 mod cli;
 mod interactive;
 
-use cli::args::{Args, Commands};
+use cli::args::Args;
 use interactive::{components::error_quit, views::*};
 
 #[derive(Debug, Clone)]
@@ -33,45 +33,8 @@ pub fn get_info_block(block: &Block) -> Result<Info> {
     })
 }
 
-fn get_info_cli(args: &Args) -> Result<Info> {
-    let block = match Block::from_dev(&args.device) {
-        Ok(block) => Some(block),
-        Err(Error::Invalid) => None,
-        Err(e) => return Err(e.into()),
-    };
-    Ok(Info {
-        path: args.device.clone(),
-        block_size: BlockSize(match args.block {
-            Some(s) => s,
-            None => {
-                if let Some(Commands::Restore { .. }) = args.cmd {
-                    0
-                } else {
-                    block
-                        .as_ref()
-                        .map(|b| b.logical_block_size())
-                        .ok_or_else(|| {
-                            anyhow!("Couldn't automatically determine logical block size")
-                        })??
-                }
-            }
-        }),
-        disk_size: Size::from_bytes(match block.as_ref() {
-            Some(block) => block.size()?,
-            None => fs::metadata(&args.device)?.len(),
-        }),
-        model: match block.as_ref() {
-            Some(block) => block.model()?.unwrap_or_default(),
-            None => String::new(),
-        },
-        name: args
-            .device
-            .file_stem()
-            .ok_or_else(|| anyhow!("Invalid device file"))?
-            .to_str()
-            .ok_or_else(|| anyhow!("Invalid UTF-8 in device file name"))?
-            .to_owned(),
-    })
+fn get_info_cli(_: &Args) -> Result<Info> {
+    todo!()
 }
 
 #[allow(unreachable_code)]
