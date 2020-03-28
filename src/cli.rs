@@ -104,7 +104,7 @@ fn handle_cmd(cmd: Commands, info: Info) -> Result<()> {
         } => {
             // TODO: Version cli argument
             let gpt = restore(format, PartitionInfoVersion::default())?;
-            // FIXME: Add block_size to Gpt and then use them here.
+            // FIXME: impl override_block. Add block_size to Gpt and then use them here.
             write_gpt_path(&gpt, &info)?;
         }
         Commands::Complete { shell } => {
