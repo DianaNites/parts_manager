@@ -31,8 +31,6 @@ pub fn get_info_block(block: &Block) -> Result<Info> {
 fn main() -> Result<()> {
     let interactive = cli::handle_args()?;
     if let cli::CliAction::Interactive(info) = interactive {
-        eprintln!("Interactive");
-        dbg!(&info);
         interactive::handle_tui(info)?;
     }
     Ok(())
