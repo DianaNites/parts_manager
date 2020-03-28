@@ -20,7 +20,7 @@ pub struct Args {
     #[structopt(
         default_value = "/dev/sda",
         default_value_if("interactive", None, "Auto"),
-        required_unless("interactive")
+        global(true)
     )]
     pub device: PathBuf,
 
@@ -89,7 +89,7 @@ pub enum Commands {
     /// Dump the GPT Label to disk. Writes to stdout.
     Dump {
         /// Format to output in
-        #[structopt(case_insensitive(true), possible_values(&Format::variants()), default_value = "Json")]
+        #[structopt(long, case_insensitive(true), possible_values(&Format::variants()), default_value = "Json")]
         format: Format,
     },
 
