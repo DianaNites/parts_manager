@@ -3,7 +3,7 @@ use crate::{actions::*, Info};
 use anyhow::{anyhow, Result};
 use linapi::system::devices::block::{Block, Error};
 use parts::types::*;
-use std::fs;
+use std::{ffi::OsStr, fs};
 use structopt::StructOpt;
 
 pub mod args;
@@ -109,16 +109,35 @@ fn handle_cmd(cmd: Commands, info: Info) -> Result<()> {
     Ok(())
 }
 
-/// Handle CLI arguments and returns true if interactive.
-pub fn handle_args() -> Result<bool> {
+/// Specifies the action `main` should take.
+pub enum CliAction {
+    /// All work is done.
+    Quit,
+
+    /// Interactive
+    Interactive(Option<Info>),
+}
+
+/// Handle CLI arguments.
+///
+/// If interactive, `Interactive(_)` is returned, `Quit` otherwise.
+///
+/// If interactive AND `device` was specified,
+/// `Interactive(Some(Info))`, otherwise `Interactive(None)`.
+pub fn handle_args() -> Result<CliAction> {
     let args: Args = Args::from_args();
     if args.cmd.is_some() {
         let info = get_info_cli(&args)?;
         let cmd = args.cmd.expect("Missing subcommand");
         handle_cmd(cmd, info)?;
-        Ok(false)
+        Ok(CliAction::Quit)
     } else if args.interactive {
-        Ok(true)
+        if args.device == OsStr::new("Auto") {
+            Ok(CliAction::Interactive(None))
+        } else {
+            let info = get_info_cli(&args)?;
+            Ok(CliAction::Interactive(Some(info)))
+        }
     } else {
         unreachable!("Clap requirements should have prevented this")
     }
