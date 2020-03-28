@@ -16,6 +16,7 @@ pub struct Info {
     pub name: String,
 }
 
+/// Get information on a device from a [`Block`]
 pub fn get_info_block(block: &Block) -> Result<Info> {
     Ok(Info {
         path: block
