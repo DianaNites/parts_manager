@@ -2,6 +2,7 @@
 use crate::Info;
 use anyhow::Result;
 use cursive::{
+    event::Event,
     theme::{BaseColor::*, Color::*, PaletteColor::*, Theme},
     Cursive,
 };
@@ -63,6 +64,7 @@ pub fn handle_tui(info: Option<Info>) -> Result<()> {
 
     // Global hotkeys
     root.add_global_callback('q', |s| s.quit());
+    root.add_global_callback(Event::CtrlChar('d'), |s| s.toggle_debug_console());
     root.add_global_callback('h', |_| todo!("Help menu"));
 
     root.run();
