@@ -1,5 +1,5 @@
 //! Code for the CLI Interface
-use crate::actions::*;
+use crate::{actions::*, Info};
 use anyhow::{anyhow, Result};
 use linapi::system::devices::block::{Block, Error};
 use parts::types::*;
@@ -9,7 +9,7 @@ use structopt::StructOpt;
 pub mod args;
 use args::*;
 
-use crate::Info;
+/// Get information on a device from CLI args
 fn get_info_cli(args: &Args) -> Result<Info> {
     let block = match Block::from_dev(&args.device) {
         Ok(block) => Some(block),
