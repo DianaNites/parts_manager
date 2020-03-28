@@ -52,6 +52,7 @@ pub enum Commands {
     },
 
     /// Add a partition to the Gpt.
+    #[structopt(alias("add"))]
     AddPartition {
         /// Partition start, in bytes.
         ///
