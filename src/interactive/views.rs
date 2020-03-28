@@ -83,6 +83,11 @@ fn new_gpt(info: &Info) -> Gpt {
 
 /// Helper to setup views due to cursive oddities
 pub fn setup_views(root: &mut Cursive) {
+    if root.user_data::<Partition>().is_none() {
+        // Required for `parts`, it'll start unset and crash if no partitions
+        root.set_user_data(None::<Partition>);
+    }
+
     // Make sure the selection callback is run so the info box is populated.
     //
     // If theres a current selection, like when running this for `parts`, don't

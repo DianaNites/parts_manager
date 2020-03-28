@@ -70,8 +70,6 @@ pub fn handle_tui(info: Option<Info>) -> Result<()> {
     root.add_global_callback('q', |s| s.quit());
     root.add_global_callback('h', |_| todo!("Help menu"));
 
-    // Required for `parts`, it'll start unset and crash if no partitions
-    root.set_user_data(None::<parts::Partition>);
     root.run();
     Ok(())
 }
