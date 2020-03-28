@@ -209,8 +209,7 @@ pub fn parts(gpt: Gpt, info: &Info) -> impl View {
 /// Returns a view that allows the user to select a disk,
 /// then calling [`parts`].
 pub fn disks() -> Result<impl View> {
-    let mut disks: Vec<Block> = Block::get_connected().context("Couldn't get connected devices")?;
-    disks.sort_unstable_by(|a, b| a.name().cmp(b.name()));
+    let disks: Vec<Block> = Block::get_connected().context("Couldn't get connected devices")?;
     let mut disks_view: DiskSelect = selection::<Info>();
     for disk in disks {
         let label = format!(
