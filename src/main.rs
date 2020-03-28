@@ -66,19 +66,19 @@ impl Info {
                 .to_owned(),
         })
     }
-}
 
-/// Get information on a device from a [`Block`]
-pub fn get_info_block(block: &Block) -> Result<Info> {
-    Ok(Info {
-        path: block
-            .dev_path()?
-            .ok_or_else(|| anyhow!("Couldn't get device file"))?,
-        block_size: BlockSize(block.logical_block_size()?),
-        disk_size: Size::from_bytes(block.size()?),
-        model: block.model()?.unwrap_or_default(),
-        name: block.name().to_owned(),
-    })
+    /// Get information on a device from a [`Block`]
+    pub fn new_block(block: &Block) -> Result<Info> {
+        Ok(Info {
+            path: block
+                .dev_path()?
+                .ok_or_else(|| anyhow!("Couldn't get device file"))?,
+            block_size: BlockSize(block.logical_block_size()?),
+            disk_size: Size::from_bytes(block.size()?),
+            model: block.model()?.unwrap_or_default(),
+            name: block.name().to_owned(),
+        })
+    }
 }
 
 fn main() -> Result<()> {

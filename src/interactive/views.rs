@@ -1,7 +1,6 @@
 use super::components::*;
 use crate::{
     actions::{dump, Format},
-    get_info_block,
     Info,
 };
 use anyhow::{Context, Result};
@@ -221,7 +220,7 @@ fn disks_impl() -> Result<impl View> {
             Byte::from_bytes(disk.size()?.into()).get_appropriate_unit(true),
             disk.model()?.unwrap_or_else(|| "None".into()),
         );
-        disks_view.add_item(label, get_info_block(&disk)?);
+        disks_view.add_item(label, Info::new_block(&disk)?);
     }
     disks_view.set_on_submit(|root, info| {
         let gpt = select_disk(info);
