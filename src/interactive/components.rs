@@ -47,11 +47,13 @@ pub fn info_box_panel_footer<V: View, BV: IntoBoxedView + 'static>(
     panel(title, info_box(selecting, info).child(footer).full_screen())
 }
 
+/// Dialog with error message.
 pub fn error<E: Into<Error>>(e: E) -> Dialog {
     let e = e.into();
     Dialog::info(format!("{:?}", e)).title("Error")
 }
 
+/// Dialog with error message, quits the application.
 pub fn error_quit<E: Into<Error>>(e: E) -> Dialog {
     let e = e.into();
     Dialog::text(format!("{:?}", e))
