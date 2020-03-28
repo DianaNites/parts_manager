@@ -19,12 +19,14 @@ fn theme(root: &mut Cursive) -> Theme {
     theme
 }
 
-/// Handle the TUI interface
+/// Handle the TUI interface. This function doesn't return until the user exits.
 pub fn handle_tui() -> Result<()> {
     let mut root = Cursive::default();
     // Theme
     let theme = theme(&mut root);
     root.set_theme(theme);
+    //
+    root.run();
     //
     Ok(())
 }
