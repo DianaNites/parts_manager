@@ -36,12 +36,7 @@ pub fn handle_tui(info: Option<Info>) -> Result<()> {
 
     // User entry point
     if info.is_none() {
-        let e = disks();
-        match e {
-            Ok(d) => root.add_fullscreen_layer(d),
-            Err(e) => root.add_layer(error_quit(e)),
-        }
-        setup_views(&mut root);
+        disks(&mut root);
     } else if let Some(info) = info {
         let gpt: Result<Gpt, _> = Gpt::from_reader(
             fs::OpenOptions::new()

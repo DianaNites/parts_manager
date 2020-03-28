@@ -211,9 +211,7 @@ pub fn parts(gpt: Gpt, info: &Info) -> impl View {
     )
 }
 
-/// Returns a view that allows the user to select a disk,
-/// then calling [`parts`].
-pub fn disks() -> Result<impl View> {
+fn disks_impl() -> Result<impl View> {
     let disks: Vec<Block> = Block::get_connected().context("Couldn't get connected devices")?;
     let mut disks_view: DiskSelect = selection::<Info>();
     for disk in disks {
@@ -250,4 +248,14 @@ pub fn disks() -> Result<impl View> {
         vec![DummyView],
     );
     Ok(disks)
+}
+
+/// Returns a view that allows the user to select a disk,
+/// then calling [`parts`].
+pub fn disks(root: &mut Cursive) {
+    match disks_impl() {
+        Ok(d) => root.add_fullscreen_layer(d),
+        Err(e) => root.add_layer(error_quit(e)),
+    }
+    setup_views(root);
 }
