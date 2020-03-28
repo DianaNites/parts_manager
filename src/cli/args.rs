@@ -1,11 +1,32 @@
 //! CLI Argument handling code
 use crate::actions::Format;
-use parts::uuid::Uuid;
+use anyhow::{anyhow, Result};
+use parts::{types::Size, uuid::Uuid};
 use std::path::PathBuf;
 use structopt::{
     clap::{AppSettings, Shell},
     StructOpt,
 };
+
+// TODO: Have parts::types::Size impl FromStr and use that instead.
+fn parse_size(arg: &str) -> Result<u64> {
+    let arg = arg.trim();
+    // Index of first non digit, or arg len.
+    let idx = arg
+        .find(|c: char| !c.is_ascii_digit())
+        .unwrap_or_else(|| arg.len());
+    let num: u64 = arg[..idx].trim().parse()?;
+    let suf = arg[idx..].trim().to_ascii_uppercase();
+
+    match &*suf {
+        "" => Ok(num),
+        "K" => Ok(Size::from_kib(num).as_bytes()),
+        "M" => Ok(Size::from_mib(num).as_bytes()),
+        "G" => Ok(Size::from_gib(num).as_bytes()),
+        "T" => Ok(Size::from_tib(num).as_bytes()),
+        _ => Err(anyhow!("Invalid suffix")),
+    }
+}
 
 /// Modern GPT Partition editor
 #[derive(Clone, Debug, StructOpt)]
@@ -72,11 +93,16 @@ pub enum Commands {
         #[structopt(short, long, default_value = "0FC63DAF-8483-4772-8E79-3D69D8477DE4")]
         partition_type: Uuid,
 
-        /// Partition size, in bytes. Use this OR `end`.
-        /// Rounds up to nearest block_size.
+        /// Partition size, in bytes.
+        ///
+        /// You can use the KiB, MiB, GiB, and TiB suffixes here.
+        /// (The `iB` is optional)
+        ///
+        /// Note that partitions can only be specified in terms of the
+        /// logical block size, so this value may be rounded up.
         ///
         /// If not specified, uses remaining space.
-        #[structopt(long, conflicts_with("end"))]
+        #[structopt(long, conflicts_with("end"), parse(try_from_str = parse_size))]
         size: Option<u64>,
 
         /// Use this specific UUID instead of generating a new one.
