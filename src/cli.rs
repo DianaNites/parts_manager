@@ -13,7 +13,7 @@ use args::*;
 fn get_info_cli(args: &Args) -> Result<Info> {
     let block = match Block::from_dev(&args.device) {
         Ok(block) => Some(block),
-        Err(Error::Invalid) => None,
+        Err(Error::InvalidArg(_)) => None,
         Err(e) => return Err(e.into()),
     };
     Ok(Info {
