@@ -9,6 +9,7 @@ use std::{
     io::{prelude::*, SeekFrom},
 };
 use structopt::clap::arg_enum;
+use tracing::{debug, info};
 
 arg_enum! {
     /// Supported formats for dumping/restoring the Gpt
@@ -136,8 +137,10 @@ pub fn restore(format: Format, _version: PartitionInfoVersion) -> Result<Gpt> {
 
 /// Create and return a new empty Gpt.
 pub fn new_gpt<U: Into<Option<Uuid>>>(uuid: U, info: &Info) -> Gpt {
+    let uuid = uuid.into();
+    info!(?uuid, "Creating new GPT");
     Gpt::new(
-        uuid.into().unwrap_or_else(Uuid::new_v4),
+        uuid.unwrap_or_else(Uuid::new_v4),
         info.disk_size,
         info.block_size,
     )
@@ -150,6 +153,8 @@ pub fn read_gpt<R: Read + Seek>(source: R, info: &Info) -> Result<Gpt> {
 
 /// Read the Gpt from `path`
 pub fn read_gpt_path(info: &Info) -> Result<Gpt> {
+    let path = info.path.display();
+    info!(%path, %info.block_size, "Reading GPT");
     let source = fs::OpenOptions::new()
         .read(true)
         .write(true)
@@ -170,6 +175,8 @@ pub fn add_part<U>(
 where
     U: Into<Option<Uuid>>,
 {
+    info!(%partition_type, %start, ?end, "Adding partition");
+    debug!(?gpt);
     let part = PartitionBuilder::new(uuid.into().unwrap_or_else(Uuid::new_v4))
         .start(start)
         .partition_type(PartitionType::from_uuid(partition_type));
@@ -177,7 +184,9 @@ where
         End::Abs(end) => part.end(end),
         End::Rel(size) => part.size(size),
     };
-    gpt.add_partition(part.finish(info.block_size))?;
+    let part = part.finish(info.block_size);
+    debug!(?part);
+    gpt.add_partition(part)?;
     Ok(())
 }
 
@@ -197,6 +206,8 @@ pub fn write_gpt<W: Write + Seek>(gpt: &Gpt, mut dest: W, info: &Info) -> Result
 
 /// Write the Gpt to `path`
 pub fn write_gpt_path(gpt: &Gpt, info: &Info) -> Result<()> {
+    let path = info.path.display();
+    info!(%path, %info.block_size, "Writing GPT");
     let dest = fs::OpenOptions::new()
         .write(true)
         .open(&info.path)
