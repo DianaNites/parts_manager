@@ -89,10 +89,11 @@ fn disks_impl() -> Result<impl View> {
         disks_view.add_item(label, Info::new_block(&disk)?);
     }
     disks_view.set_on_submit(|root, info| {
+        // FIXME: Exactly the same as `parts`, except for `error_quit`.
         let gpt = select_disk(info);
         match gpt {
             Ok(gpt) => {
-                root.add_fullscreen_layer(parts(gpt, info));
+                root.add_fullscreen_layer(parts_impl(gpt, info));
                 setup_views(root);
             }
             Err(e) => {
@@ -100,7 +101,7 @@ fn disks_impl() -> Result<impl View> {
                 let dialog = error(e).button("New GPT", move |root| {
                     let gpt = new_gpt(None, &info);
                     root.pop_layer();
-                    root.add_fullscreen_layer(parts(gpt, &info));
+                    root.add_fullscreen_layer(parts_impl(gpt, &info));
                     setup_views(root);
                 });
                 root.add_layer(dialog);
@@ -116,7 +117,7 @@ fn disks_impl() -> Result<impl View> {
 }
 
 /// Helper to setup views due to cursive oddities
-pub fn setup_views(root: &mut Cursive) {
+fn setup_views(root: &mut Cursive) {
     if root.user_data::<Partition>().is_none() {
         // Required for `parts`, it'll start unset and crash if no partitions
         root.set_user_data(None::<Partition>);
@@ -144,7 +145,7 @@ pub fn setup_views(root: &mut Cursive) {
 }
 
 /// Partition editing view.
-pub fn parts(gpt: Gpt, info: &Info) -> impl View {
+fn parts_impl(gpt: Gpt, info: &Info) -> impl View {
     let name = &info.name;
     let block_size = info.block_size;
     let new_info = info.clone();
@@ -243,4 +244,34 @@ pub fn disks(root: &mut Cursive) {
         Err(e) => root.add_layer(error_quit(e)),
     }
     setup_views(root);
+}
+
+pub fn parts(root: &mut Cursive, info: &Info) {
+    let f = fs::OpenOptions::new()
+        .write(true)
+        .read(true)
+        .open(&info.path);
+    let f = match f {
+        Ok(f) => f,
+        Err(e) => {
+            root.add_layer(error_quit(e));
+            return;
+        }
+    };
+    let gpt: Result<Gpt, _> = Gpt::from_reader(f, info.block_size);
+    match gpt {
+        Ok(gpt) => {
+            root.add_fullscreen_layer(parts_impl(gpt, &info));
+            setup_views(root);
+        }
+        Err(e) => {
+            let info = info.clone();
+            root.add_layer(error_quit(e).button("New Gpt", move |root| {
+                let gpt: Gpt = Gpt::new(Uuid::new_v4(), info.disk_size, info.block_size);
+                root.pop_layer();
+                root.add_fullscreen_layer(parts_impl(gpt, &info));
+                setup_views(root);
+            }));
+        }
+    };
 }
