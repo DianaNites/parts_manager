@@ -4,7 +4,7 @@ use anyhow::Result;
 use parts::types::*;
 use std::{ffi::OsStr, fs};
 use structopt::StructOpt;
-use tracing::{metadata::Metadata, Level};
+use tracing::{info, metadata::Metadata, Level};
 use tracing_subscriber::{layer, layer::SubscriberExt, FmtSubscriber};
 
 pub mod args;
@@ -93,7 +93,12 @@ pub enum CliAction {
 /// If interactive AND `device` was specified,
 /// `Interactive(Some(Info))`, otherwise `Interactive(None)`.
 pub fn handle_args() -> Result<CliAction> {
-    let args: Args = Args::from_args();
+    let mut args: Args = Args::from_args();
+    // FIXME: Should be in `Args` struct, but clap/structopt doesn't allow this.
+    // https://github.com/TeXitoi/structopt/issues/365 😳
+    if args.dry_run && args.verbose == 0 {
+        args.verbose = 3;
+    }
     tracing::subscriber::set_global_default(
         FmtSubscriber::builder()
             .with_max_level(match args.verbose {

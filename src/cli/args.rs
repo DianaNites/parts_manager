@@ -61,6 +61,15 @@ pub struct Args {
     #[structopt(short, long, global(true), parse(from_occurrences))]
     pub verbose: u64,
 
+    /// Don't modify device
+    ///
+    /// If `verbose` wasn't specified, defaults to `-vvv`
+    ///
+    /// Conflicts with `interactive`.
+    /// The TUI already doesn't modify anything unless explicitly requested to.
+    #[structopt(short, long, conflicts_with("interactive"), global(true))]
+    pub dry_run: bool,
+
     #[structopt(subcommand)]
     pub cmd: Option<Commands>,
 }
