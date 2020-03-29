@@ -54,6 +54,13 @@ pub struct Args {
     #[structopt(short, long, required_unless("subcommand"))]
     pub interactive: bool,
 
+    /// Display log messages
+    ///
+    /// This flag can be passed multiple times for more verbose output,
+    /// as in `-vvv`.
+    #[structopt(short, long, parse(from_occurrences))]
+    pub verbose: u64,
+
     #[structopt(subcommand)]
     pub cmd: Option<Commands>,
 }

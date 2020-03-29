@@ -4,9 +4,20 @@ use anyhow::Result;
 use parts::types::*;
 use std::{ffi::OsStr, fs};
 use structopt::StructOpt;
+use tracing::{metadata::Metadata, Level};
+use tracing_subscriber::{layer, layer::SubscriberExt, FmtSubscriber};
 
 pub mod args;
 use args::*;
+
+/// Filter logs based on verbosity.
+struct VerboseFilter(bool);
+
+impl layer::Layer<FmtSubscriber> for VerboseFilter {
+    fn enabled(&self, _: &Metadata, _: layer::Context<FmtSubscriber>) -> bool {
+        self.0
+    }
+}
 
 /// Handle CLI subcommand actions.
 fn handle_cmd(cmd: Commands, info: Info) -> Result<()> {
@@ -83,6 +94,20 @@ pub enum CliAction {
 /// `Interactive(Some(Info))`, otherwise `Interactive(None)`.
 pub fn handle_args() -> Result<CliAction> {
     let args: Args = Args::from_args();
+    tracing::subscriber::set_global_default(
+        FmtSubscriber::builder()
+            .with_max_level(match args.verbose {
+                1 => Level::ERROR,
+                2 => Level::WARN,
+                3 => Level::INFO,
+                4 => Level::DEBUG,
+                _ => Level::TRACE,
+            })
+            // completes the builder.
+            .finish()
+            .with(VerboseFilter(args.verbose != 0)),
+    )?;
+
     if args.cmd.is_some() {
         let info = Info::new_cli(&args)?;
         let cmd = args.cmd.expect("Missing subcommand");
