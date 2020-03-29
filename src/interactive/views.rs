@@ -11,7 +11,7 @@ use cursive::{
     traits::Resizable,
     utils::markup::StyledString,
     view::{Nameable, View},
-    views::{Button, Dialog, DummyView, EditView, LinearLayout, SelectView, TextView},
+    views::{Button, Dialog, DummyView, EditView, LinearLayout, SelectView, TextContent, TextView},
     Cursive,
 };
 use linapi::system::devices::block::Block;
@@ -169,12 +169,17 @@ pub fn parts(gpt: Gpt, info: &Info) -> impl View {
         ),
         None,
     );
+    let part_name = TextContent::new("");
+    let part_start = TextContent::new("");
+    let part_size = TextContent::new("");
+    let part_uuid = TextContent::new("");
+    let part_type = TextContent::new("");
     let info = vec![
-        TextView::empty().with_name("part_name"),
-        TextView::empty().with_name("part_start"),
-        TextView::empty().with_name("part_size"),
-        TextView::empty().with_name("part_uuid"),
-        TextView::empty().with_name("part_type"),
+        TextView::new_with_content(part_name.clone()),
+        TextView::new_with_content(part_start.clone()),
+        TextView::new_with_content(part_size.clone()),
+        TextView::new_with_content(part_uuid.clone()),
+        TextView::new_with_content(part_type.clone()),
     ];
     parts_view.set_on_select(move |root: &mut Cursive, part: &Option<Partition>| {
         let part_ = root
@@ -194,31 +199,16 @@ pub fn parts(gpt: Gpt, info: &Info) -> impl View {
             .unwrap_or_else(|| part.expect("What the fuck"));
         let part = part_;
         root.set_user_data(Some(part));
-        // Unwraps are okay, if not is a bug.
-        root.call_on_name("part_name", |v: &mut TextView| {
-            v.set_content(format!("Name: {}", part.name()));
-        })
-        .expect("Missing callback");
-        root.call_on_name("part_start", |v: &mut TextView| {
-            v.set_content(format!("Start: {}", part.start()));
-        })
-        .expect("Missing callback");
-        root.call_on_name("part_size", |v: &mut TextView| {
-            v.set_content(format!(
-                "Size: {}",
-                Byte::from_bytes((part.end().0 - part.start().0 + block_size.0).into())
-                    .get_appropriate_unit(true)
-            ));
-        })
-        .expect("Missing callback");
-        root.call_on_name("part_uuid", |v: &mut TextView| {
-            v.set_content(format!("UUID: {}", part.uuid()));
-        })
-        .expect("Missing callback");
-        root.call_on_name("part_type", |v: &mut TextView| {
-            v.set_content(format!("Type: {}", part.partition_type()));
-        })
-        .expect("Missing callback");
+        //
+        part_name.set_content(format!("Name: {}", part.name()));
+        part_start.set_content(format!("Start: {}", part.start()));
+        part_size.set_content(format!(
+            "Size: {}",
+            Byte::from_bytes((part.end().0 - part.start().0 + block_size.0).into())
+                .get_appropriate_unit(true)
+        ));
+        part_uuid.set_content(format!("UUID: {}", part.uuid()));
+        part_type.set_content(format!("Type: {}", part.partition_type()));
     });
     //
     let mut buttons = LinearLayout::horizontal()
