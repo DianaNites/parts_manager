@@ -87,3 +87,32 @@ pub fn horizontal_forward<BV: View, V: View>(view: V, name: &str) -> impl View {
         _ => s.on_event(e),
     })
 }
+
+#[derive(Copy, Clone)]
+pub enum ErrAction {
+    Dismiss,
+    Quit,
+}
+pub use ErrAction::*;
+
+/// Run the callback `cb`, and if an error occurs display a popup describing it.
+///
+/// `action` can be used to provide extra buttons to the error dialog.
+pub fn err<CB, AB>(root: &mut cursive::Cursive, quit: ErrAction, action: AB, cb: CB)
+where
+    CB: FnOnce(&mut cursive::Cursive) -> anyhow::Result<()>,
+    AB: FnOnce(Dialog) -> Dialog,
+{
+    match cb(root) {
+        Ok(_) => (),
+        Err(e) => {
+            let dialog = if let Quit = quit {
+                error_quit(e)
+            } else {
+                error(e)
+            };
+            let dialog = action(dialog);
+            root.add_layer(dialog)
+        }
+    }
+}

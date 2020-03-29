@@ -1,6 +1,6 @@
 use super::components::*;
 use crate::{
-    actions::{dump, new_gpt, Format},
+    actions::{dump, new_gpt, read_gpt_path, Format},
     Info,
 };
 use anyhow::{Context, Result};
@@ -66,14 +66,27 @@ fn dump_button(root: &mut Cursive, gpt: Gpt, info: Info) {
     root.add_layer(panel(title, view).min_width(title.len() + 6));
 }
 
-fn select_disk(info: &Info) -> Result<Gpt> {
-    let file = fs::OpenOptions::new()
-        .read(true)
-        .write(true)
-        .open(&info.path)
-        .with_context(|| format!("Couldn't open: `{}`", info.path.display()))?;
-    let gpt: Gpt = Gpt::from_reader(file, info.block_size)?;
-    Ok(gpt)
+fn parts_shared(root: &mut Cursive, info: &Info, quit: ErrAction) {
+    err(
+        root,
+        quit,
+        |d| {
+            let info = info.clone();
+            d.button("New Gpt", move |root| {
+                let gpt = new_gpt(None, &info);
+                root.pop_layer();
+                root.add_fullscreen_layer(parts_impl(gpt, &info));
+                setup_views(root);
+            })
+        },
+        |root| {
+            let gpt = read_gpt_path(&info)?;
+            root.add_fullscreen_layer(parts_impl(gpt, &info));
+            setup_views(root);
+            //
+            Ok(())
+        },
+    );
 }
 
 fn disks_impl() -> Result<impl View> {
@@ -89,24 +102,7 @@ fn disks_impl() -> Result<impl View> {
         disks_view.add_item(label, Info::new_block(&disk)?);
     }
     disks_view.set_on_submit(|root, info| {
-        // FIXME: Exactly the same as `parts`, except for `error_quit`.
-        let gpt = select_disk(info);
-        match gpt {
-            Ok(gpt) => {
-                root.add_fullscreen_layer(parts_impl(gpt, info));
-                setup_views(root);
-            }
-            Err(e) => {
-                let info = info.clone();
-                let dialog = error(e).button("New GPT", move |root| {
-                    let gpt = new_gpt(None, &info);
-                    root.pop_layer();
-                    root.add_fullscreen_layer(parts_impl(gpt, &info));
-                    setup_views(root);
-                });
-                root.add_layer(dialog);
-            }
-        }
+        parts_shared(root, info, Dismiss);
     });
     let disks = info_box_panel(
         "Disks",
@@ -239,39 +235,18 @@ fn parts_impl(gpt: Gpt, info: &Info) -> impl View {
 /// Returns a view that allows the user to select a disk,
 /// then calling [`parts`].
 pub fn disks(root: &mut Cursive) {
-    match disks_impl() {
-        Ok(d) => root.add_fullscreen_layer(d),
-        Err(e) => root.add_layer(error_quit(e)),
-    }
-    setup_views(root);
+    err(
+        root,
+        Quit,
+        |d| d,
+        |root| {
+            root.add_fullscreen_layer(disks_impl()?);
+            setup_views(root);
+            Ok(())
+        },
+    );
 }
 
 pub fn parts(root: &mut Cursive, info: &Info) {
-    let f = fs::OpenOptions::new()
-        .write(true)
-        .read(true)
-        .open(&info.path);
-    let f = match f {
-        Ok(f) => f,
-        Err(e) => {
-            root.add_layer(error_quit(e));
-            return;
-        }
-    };
-    let gpt: Result<Gpt, _> = Gpt::from_reader(f, info.block_size);
-    match gpt {
-        Ok(gpt) => {
-            root.add_fullscreen_layer(parts_impl(gpt, &info));
-            setup_views(root);
-        }
-        Err(e) => {
-            let info = info.clone();
-            root.add_layer(error_quit(e).button("New Gpt", move |root| {
-                let gpt: Gpt = Gpt::new(Uuid::new_v4(), info.disk_size, info.block_size);
-                root.pop_layer();
-                root.add_fullscreen_layer(parts_impl(gpt, &info));
-                setup_views(root);
-            }));
-        }
-    };
+    parts_shared(root, info, Quit);
 }
