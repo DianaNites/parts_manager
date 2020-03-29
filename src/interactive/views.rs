@@ -1,3 +1,4 @@
+//! TUI interface
 use super::components::*;
 use crate::{
     actions::{dump, new_gpt, read_gpt_path, Format},

@@ -1,3 +1,4 @@
+//! Reusable components
 use anyhow::Error;
 use cursive::{
     align::HAlign,
