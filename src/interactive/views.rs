@@ -1,6 +1,6 @@
 use super::components::*;
 use crate::{
-    actions::{dump, Format},
+    actions::{dump, new_gpt, Format},
     Info,
 };
 use anyhow::{Context, Result};
@@ -76,10 +76,6 @@ fn select_disk(info: &Info) -> Result<Gpt> {
     Ok(gpt)
 }
 
-fn new_gpt(info: &Info) -> Gpt {
-    Gpt::new(Uuid::new_v4(), info.disk_size, info.block_size)
-}
-
 fn disks_impl() -> Result<impl View> {
     let disks: Vec<Block> = Block::get_connected().context("Couldn't get connected devices")?;
     let mut disks_view: DiskSelect = selection::<Info>();
@@ -102,7 +98,7 @@ fn disks_impl() -> Result<impl View> {
             Err(e) => {
                 let info = info.clone();
                 let dialog = error(e).button("New GPT", move |root| {
-                    let gpt = new_gpt(&info);
+                    let gpt = new_gpt(None, &info);
                     root.pop_layer();
                     root.add_fullscreen_layer(parts(gpt, &info));
                     setup_views(root);
