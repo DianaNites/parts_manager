@@ -58,7 +58,7 @@ pub struct Args {
     ///
     /// This flag can be passed multiple times for more verbose output,
     /// as in `-vvv`.
-    #[structopt(short, long, parse(from_occurrences))]
+    #[structopt(short, long, global(true), parse(from_occurrences))]
     pub verbose: u64,
 
     #[structopt(subcommand)]
