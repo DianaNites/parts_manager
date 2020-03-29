@@ -80,6 +80,45 @@ fn new_gpt(info: &Info) -> Gpt {
     Gpt::new(Uuid::new_v4(), info.disk_size, info.block_size)
 }
 
+fn disks_impl() -> Result<impl View> {
+    let disks: Vec<Block> = Block::get_connected().context("Couldn't get connected devices")?;
+    let mut disks_view: DiskSelect = selection::<Info>();
+    for disk in disks {
+        let label = format!(
+            "Disk {} - {} - Model: {}",
+            disk.name(), //
+            Byte::from_bytes(disk.size()?.into()).get_appropriate_unit(true),
+            disk.model()?.unwrap_or_else(|| "None".into()),
+        );
+        disks_view.add_item(label, Info::new_block(&disk)?);
+    }
+    disks_view.set_on_submit(|root, info| {
+        let gpt = select_disk(info);
+        match gpt {
+            Ok(gpt) => {
+                root.add_fullscreen_layer(parts(gpt, info));
+                setup_views(root);
+            }
+            Err(e) => {
+                let info = info.clone();
+                let dialog = error(e).button("New GPT", move |root| {
+                    let gpt = new_gpt(&info);
+                    root.pop_layer();
+                    root.add_fullscreen_layer(parts(gpt, &info));
+                    setup_views(root);
+                });
+                root.add_layer(dialog);
+            }
+        }
+    });
+    let disks = info_box_panel(
+        "Disks",
+        disks_view.with_name("disks").full_screen(),
+        vec![DummyView],
+    );
+    Ok(disks)
+}
+
 /// Helper to setup views due to cursive oddities
 pub fn setup_views(root: &mut Cursive) {
     if root.user_data::<Partition>().is_none() {
@@ -208,45 +247,6 @@ pub fn parts(gpt: Gpt, info: &Info) -> impl View {
         ),
         "buttons",
     )
-}
-
-fn disks_impl() -> Result<impl View> {
-    let disks: Vec<Block> = Block::get_connected().context("Couldn't get connected devices")?;
-    let mut disks_view: DiskSelect = selection::<Info>();
-    for disk in disks {
-        let label = format!(
-            "Disk {} - {} - Model: {}",
-            disk.name(), //
-            Byte::from_bytes(disk.size()?.into()).get_appropriate_unit(true),
-            disk.model()?.unwrap_or_else(|| "None".into()),
-        );
-        disks_view.add_item(label, Info::new_block(&disk)?);
-    }
-    disks_view.set_on_submit(|root, info| {
-        let gpt = select_disk(info);
-        match gpt {
-            Ok(gpt) => {
-                root.add_fullscreen_layer(parts(gpt, info));
-                setup_views(root);
-            }
-            Err(e) => {
-                let info = info.clone();
-                let dialog = error(e).button("New GPT", move |root| {
-                    let gpt = new_gpt(&info);
-                    root.pop_layer();
-                    root.add_fullscreen_layer(parts(gpt, &info));
-                    setup_views(root);
-                });
-                root.add_layer(dialog);
-            }
-        }
-    });
-    let disks = info_box_panel(
-        "Disks",
-        disks_view.with_name("disks").full_screen(),
-        vec![DummyView],
-    );
-    Ok(disks)
 }
 
 /// Returns a view that allows the user to select a disk,
