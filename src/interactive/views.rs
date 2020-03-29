@@ -232,8 +232,7 @@ fn parts_impl(gpt: Gpt, info: &Info) -> impl View {
     )
 }
 
-/// Returns a view that allows the user to select a disk,
-/// then calling [`parts`].
+/// Disk Selection Display
 pub fn disks(root: &mut Cursive) {
     err(
         root,
@@ -247,6 +246,7 @@ pub fn disks(root: &mut Cursive) {
     );
 }
 
+/// Partition Display
 pub fn parts(root: &mut Cursive, info: &Info) {
     parts_shared(root, info, Quit);
 }
