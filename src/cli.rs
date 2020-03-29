@@ -108,7 +108,6 @@ pub fn handle_args() -> Result<CliAction> {
                 4 => Level::DEBUG,
                 _ => Level::TRACE,
             })
-            // completes the builder.
             .finish()
             .with(VerboseFilter(args.verbose != 0)),
     )?;
