@@ -67,6 +67,34 @@ fn dump_button(root: &mut Cursive, gpt: Gpt, info: Info) {
     root.add_layer(panel(title, view).min_width(title.len() + 6));
 }
 
+/// Helper to setup views due to cursive oddities
+fn setup_views(root: &mut Cursive) {
+    if root.user_data::<Partition>().is_none() {
+        // Required for `parts`, it'll start unset and crash if no partitions
+        root.set_user_data(None::<Partition>);
+    }
+
+    // Make sure the selection callback is run so the info box is populated.
+    //
+    // If theres a current selection, like when running this for `parts`, don't
+    // change it.
+    //
+    // This may be None, when the user provides a path.
+    if let Some(cb) = root.call_on_name("disks", |v: &mut DiskSelect| {
+        v.set_selection(v.selected_id().unwrap_or(0))
+    }) {
+        cb(root)
+    }
+
+    // Make sure the parts callback is run. This won't always exist, for example
+    // when setting up `disks`.
+    //
+    // `disks` will call this itself.
+    if let Some(cb) = root.call_on_name("parts", |v: &mut PartSelect| v.set_selection(0)) {
+        cb(root);
+    }
+}
+
 fn parts_shared(root: &mut Cursive, info: &Info, quit: ErrAction) {
     err(
         root,
@@ -111,34 +139,6 @@ fn disks_impl() -> Result<impl View> {
         vec![DummyView],
     );
     Ok(disks)
-}
-
-/// Helper to setup views due to cursive oddities
-fn setup_views(root: &mut Cursive) {
-    if root.user_data::<Partition>().is_none() {
-        // Required for `parts`, it'll start unset and crash if no partitions
-        root.set_user_data(None::<Partition>);
-    }
-
-    // Make sure the selection callback is run so the info box is populated.
-    //
-    // If theres a current selection, like when running this for `parts`, don't
-    // change it.
-    //
-    // This may be None, when the user provides a path.
-    if let Some(cb) = root.call_on_name("disks", |v: &mut DiskSelect| {
-        v.set_selection(v.selected_id().unwrap_or(0))
-    }) {
-        cb(root)
-    }
-
-    // Make sure the parts callback is run. This won't always exist, for example
-    // when setting up `disks`.
-    //
-    // `disks` will call this itself.
-    if let Some(cb) = root.call_on_name("parts", |v: &mut PartSelect| v.set_selection(0)) {
-        cb(root);
-    }
 }
 
 /// Partition editing view.
