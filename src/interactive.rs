@@ -27,7 +27,7 @@ fn theme(root: &mut Cursive) -> Theme {
 ///
 /// This function doesn't return until the user exits.
 pub fn handle_tui(info: Option<Info>) -> Result<()> {
-    let mut root = Cursive::default();
+    let mut root = cursive::default();
     // Theme
     let theme = theme(&mut root);
     root.set_theme(theme);
