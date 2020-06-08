@@ -141,7 +141,7 @@ fn parts_impl(gpt: Gpt, info: &Info) -> impl View {
     let name = &info.name;
     let block_size = info.block_size;
     let new_info = info.clone();
-    let remaining = gpt.remaining();
+    let _remaining = gpt.remaining();
     let parts = gpt.partitions();
     let mut parts_view: PartSelect = selection();
     for (i, part) in parts.iter().enumerate() {
@@ -174,7 +174,7 @@ fn parts_impl(gpt: Gpt, info: &Info) -> impl View {
         TextView::new_with_content(part_uuid.clone()),
         TextView::new_with_content(part_type.clone()),
     ];
-    parts_view.set_on_select(move |root: &mut Cursive, part: &Option<Partition>| {
+    parts_view.set_on_select(move |_root: &mut Cursive, part: &Option<Partition>| {
         // let part = part.unwrap_or(
         //     PartitionBuilder::new(Uuid::nil(), &gpt)
         //         .name("None")
