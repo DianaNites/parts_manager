@@ -93,8 +93,7 @@ pub enum Commands {
     AddPartition {
         /// Partition start, in bytes.
         ///
-        /// If not specified, partition starts after last existing partition,
-        /// or at 1 MiB.
+        /// If not specified, the partition starts at the next 1 MiB boundary.
         #[structopt(long)]
         start: Option<u64>,
 
