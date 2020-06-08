@@ -44,14 +44,10 @@ fn handle_cmd(cmd: Commands, info: Info, dry_run: bool) -> Result<()> {
                 f.open(&info.path)?
             };
             let mut gpt = read_gpt(&mut f, &info)?;
-            // CLI size, or last partition block + 1, or 1 MiB
-            let start = start.map(Offset).unwrap_or_else(|| {
-                gpt.partitions()
-                    .last()
-                    // FIXME: parts API is bad here
-                    .map(|p| Offset(p.end().0 + info.block_size.get()))
-                    .unwrap_or_else(|| Size::from_mib(1).into())
-            });
+            // CLI provided size, or next aligned.
+            let start: Offset = start
+                .map(Offset)
+                .unwrap_or_else(|| gpt.next_usable_aligned() * info.block_size);
             // If end, absolute. If size, relative. If neither, remaining size.
             let end = match (end, size) {
                 (Some(end), None) => End::Abs(Offset(end)),
