@@ -134,11 +134,11 @@ pub fn handle_args() -> Result<CliAction> {
         Ok(CliAction::Quit)
     } else if args.interactive {
         if args.device == OsStr::new("Auto") {
-            info!("Selecting device");
+            info!("Displaying device selection");
             Ok(CliAction::Interactive(None))
         } else {
             let device = args.device.display();
-            info!(%device, "Using device");
+            info!(%device, "Using provided device");
             let info = Info::new_cli(&args)?;
             Ok(CliAction::Interactive(Some(info)))
         }
