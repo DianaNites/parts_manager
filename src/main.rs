@@ -7,6 +7,7 @@ mod actions;
 mod cli;
 mod interactive;
 
+/// General information on the device
 #[derive(Debug, Clone)]
 pub struct Info {
     pub path: PathBuf,
