@@ -26,7 +26,7 @@ impl Info {
         };
         Ok(Info {
             path: args.device.clone(),
-            block_size: BlockSize(match args.block {
+            block_size: BlockSize::new(match args.block {
                 Some(s) => s,
                 None => {
                     // Needed because `block_size` can be None for Restore,
@@ -73,7 +73,7 @@ impl Info {
             path: block
                 .dev_path()?
                 .ok_or_else(|| anyhow!("Couldn't get device file"))?,
-            block_size: BlockSize(block.logical_block_size()?),
+            block_size: BlockSize::new(block.logical_block_size()?),
             disk_size: Size::from_bytes(block.size()?),
             model: block.model()?.unwrap_or_default(),
             name: block.name().to_owned(),

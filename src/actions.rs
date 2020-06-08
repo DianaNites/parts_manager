@@ -87,8 +87,8 @@ impl DeviceInfo {
                     name: p.name().into(),
                     part_type: p.partition_type(),
                     uuid: p.uuid(),
-                    start: p.start(),
-                    end: p.end(),
+                    start: p.start() * block_size,
+                    end: p.end() * block_size,
                 })
                 .collect(),
         }
@@ -97,12 +97,12 @@ impl DeviceInfo {
     pub fn into_gpt(self) -> Result<Gpt> {
         let mut gpt = Gpt::new(self.uuid, self.device_size, self.block_size);
         for part in self.partitions {
-            let part = PartitionBuilder::new(part.uuid)
+            let part = PartitionBuilder::new(part.uuid, &gpt)
                 .name(&part.name)
                 .partition_type(part.part_type)
-                .start(part.start)
-                .end(part.end)
-                .finish(self.block_size);
+                .start(part.start / self.block_size)
+                .end(part.end / self.block_size)
+                .finish();
             gpt.add_partition(part)?;
         }
         Ok(gpt)
@@ -177,14 +177,14 @@ where
 {
     info!(%partition_type, %start, ?end, "Adding partition");
     debug!(?gpt);
-    let part = PartitionBuilder::new(uuid.into().unwrap_or_else(Uuid::new_v4))
-        .start(start)
+    let part = PartitionBuilder::new(uuid.into().unwrap_or_else(Uuid::new_v4), &gpt)
+        .start(start / info.block_size)
         .partition_type(PartitionType::from_uuid(partition_type));
     let part = match end {
-        End::Abs(end) => part.end(end),
+        End::Abs(end) => part.end(end / info.block_size),
         End::Rel(size) => part.size(size),
     };
-    let part = part.finish(info.block_size);
+    let part = part.finish();
     debug!(?part);
     gpt.add_partition(part)?;
     Ok(())

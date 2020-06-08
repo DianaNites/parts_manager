@@ -16,7 +16,7 @@ use cursive::{
     Cursive,
 };
 use linapi::system::devices::block::Block;
-use parts::{types::*, uuid::Uuid, Gpt, Partition, PartitionBuilder, PartitionType};
+use parts::{uuid::Uuid, Gpt, Partition, PartitionBuilder, PartitionType};
 use std::{fs, path::Path, str::FromStr};
 
 type DiskSelect = SelectView<Info>;
@@ -69,11 +69,6 @@ fn dump_button(root: &mut Cursive, gpt: Gpt, info: Info) {
 
 /// Helper to setup views due to cursive oddities
 fn setup_views(root: &mut Cursive) {
-    if root.user_data::<Partition>().is_none() {
-        // Required for `parts`, it'll start unset and crash if no partitions
-        root.set_user_data(None::<Partition>);
-    }
-
     // Make sure the selection callback is run so the info box is populated.
     //
     // If theres a current selection, like when running this for `parts`, don't
@@ -180,33 +175,30 @@ fn parts_impl(gpt: Gpt, info: &Info) -> impl View {
         TextView::new_with_content(part_type.clone()),
     ];
     parts_view.set_on_select(move |root: &mut Cursive, part: &Option<Partition>| {
-        let part_ = root
-            .with_user_data(|last: &mut Option<Partition>| {
-                part.unwrap_or(
-                    PartitionBuilder::new(Uuid::nil())
-                        .name("None")
-                        .start(
-                            last.map(|p| Offset(p.end().0 + 1))
-                                .unwrap_or_else(|| Size::from_mib(1).into()),
-                        )
-                        .size(remaining)
-                        .partition_type(PartitionType::Unused)
-                        .finish(block_size),
-                )
-            })
-            .unwrap_or_else(|| part.expect("What the fuck"));
-        let part = part_;
-        root.set_user_data(Some(part));
+        // let part = part.unwrap_or(
+        //     PartitionBuilder::new(Uuid::nil(), &gpt)
+        //         .name("None")
+        //         .start(gpt.next_usable_aligned())
+        //         .size(remaining)
+        //         .partition_type(PartitionType::Unused)
+        //         .finish(),
+        // );
+        let part = part.unwrap();
         //
         part_name.set_content(format!("Name: {}", part.name()));
         part_start.set_content(format!("Start: {}", part.start()));
         part_size.set_content(format!(
             "Size: {}",
-            Byte::from_bytes((part.end().0 - part.start().0 + block_size.0).into())
+            Byte::from_bytes((part.end().0 - part.start().0 + block_size.get()).into())
                 .get_appropriate_unit(true)
         ));
         part_uuid.set_content(format!("UUID: {}", part.uuid()));
         part_type.set_content(format!("Type: {}", part.partition_type()));
+        //
+        let _ = Uuid::nil();
+        type _A = PartitionBuilder;
+        type _B = PartitionType;
+        todo!("Fuck");
     });
     //
     let mut buttons = LinearLayout::horizontal()

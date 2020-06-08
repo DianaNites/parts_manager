@@ -48,8 +48,8 @@ fn handle_cmd(cmd: Commands, info: Info, dry_run: bool) -> Result<()> {
             let start = start.map(Offset).unwrap_or_else(|| {
                 gpt.partitions()
                     .last()
-                    //FIXME: parts API is bad here
-                    .map(|p| Offset(p.end().0 + info.block_size.0))
+                    // FIXME: parts API is bad here
+                    .map(|p| Offset(p.end().0 + info.block_size.get()))
                     .unwrap_or_else(|| Size::from_mib(1).into())
             });
             // If end, absolute. If size, relative. If neither, remaining size.
