@@ -1,3 +1,4 @@
+#![allow(dead_code, unused_imports)]
 use anyhow::{anyhow, Result};
 use linapi::system::devices::block::{Block, Error};
 use parts::types::*;

@@ -6,6 +6,7 @@ use cursive::{
     theme::{BaseColor::*, Color::*, PaletteColor::*, Theme},
     Cursive,
 };
+use std::rc::Rc;
 
 pub mod components;
 pub mod views;
@@ -35,8 +36,9 @@ pub fn handle_tui(info: Option<Info>) -> Result<()> {
     // User entry point
     if info.is_none() {
         disks(&mut root);
-    } else if let Some(info) = info {
-        parts(&mut root, &info);
+    } else if let Some(_info) = info {
+        todo!("Parts")
+        // parts(&mut root, &info);
     }
 
     // Global hotkeys

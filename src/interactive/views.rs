@@ -17,9 +17,10 @@ use cursive::{
 };
 use linapi::system::devices::block::Block;
 use parts::{uuid::Uuid, Gpt, Partition, PartitionBuilder, PartitionType};
-use std::{fs, path::Path, str::FromStr};
+use std::{cell::RefCell, fs, path::Path, rc::Rc, str::FromStr};
 
-type DiskSelect = SelectView<Info>;
+type DiskSelectVal = Rc<RefCell<Info>>;
+type DiskSelect = SelectView<DiskSelectVal>;
 type PartSelect = SelectView<Option<Partition>>;
 type FormatSelect = SelectView<Format>;
 
@@ -90,13 +91,14 @@ fn setup_views(root: &mut Cursive) {
     }
 }
 
-fn parts_shared(root: &mut Cursive, info: &Info, quit: ErrAction) {
+fn parts_shared(root: &mut Cursive, info: &DiskSelectVal, quit: ErrAction) {
     err(
         root,
         quit,
         |d| {
             let info = info.clone();
             d.button("New Gpt", move |root| {
+                let info = info.borrow();
                 let gpt = new_gpt(None, &info);
                 root.pop_layer();
                 root.add_fullscreen_layer(parts_impl(gpt, &info));
@@ -104,6 +106,7 @@ fn parts_shared(root: &mut Cursive, info: &Info, quit: ErrAction) {
             })
         },
         |root| {
+            let info = info.borrow();
             let gpt = read_gpt_path(&info)?;
             root.add_fullscreen_layer(parts_impl(gpt, &info));
             setup_views(root);
@@ -115,7 +118,7 @@ fn parts_shared(root: &mut Cursive, info: &Info, quit: ErrAction) {
 
 fn disks_impl() -> Result<impl View> {
     let disks: Vec<Block> = Block::get_connected().context("Couldn't get connected devices")?;
-    let mut disks_view: DiskSelect = selection::<Info>();
+    let mut disks_view: DiskSelect = selection::<DiskSelectVal>();
     for disk in disks {
         let label = format!(
             "Disk {} - {} - Model: {}",
@@ -123,9 +126,9 @@ fn disks_impl() -> Result<impl View> {
             Byte::from_bytes(disk.size()?.into()).get_appropriate_unit(true),
             disk.model()?.unwrap_or_else(|| "None".into()),
         );
-        disks_view.add_item(label, Info::new_block(&disk)?);
+        disks_view.add_item(label, Rc::new(RefCell::new(Info::new_block(&disk)?)));
     }
-    disks_view.set_on_submit(|root, info| {
+    disks_view.set_on_submit(|root, info: &DiskSelectVal| {
         parts_shared(root, info, Dismiss);
     });
     let disks = info_box_panel(
@@ -240,6 +243,7 @@ pub fn disks(root: &mut Cursive) {
 }
 
 /// Partition Display
-pub fn parts(root: &mut Cursive, info: &Info) {
-    parts_shared(root, info, Quit);
+pub fn parts(_root: &mut Cursive, _info: &Info) {
+    todo!("Parts")
+    // parts_shared(root, info, Quit);
 }
