@@ -579,6 +579,7 @@ dependencies = [
 [[package]]
 name = "parts"
 version = "0.1.0"
+source = "git+https://github.com/DianaNites/parts?branch=rewrite#fca8466597021113dfe0a231e2d02a43cbbe8377"
 dependencies = [
  "arrayvec 0.5.1 (registry+https://github.com/rust-lang/crates.io-index)",
  "crc 1.8.1 (registry+https://github.com/rust-lang/crates.io-index)",
@@ -597,7 +598,7 @@ dependencies = [
  "byte-unit 4.0.8 (registry+https://github.com/rust-lang/crates.io-index)",
  "cursive 0.15.0 (registry+https://github.com/rust-lang/crates.io-index)",
  "linapi 0.5.1 (registry+https://github.com/rust-lang/crates.io-index)",
- "parts 0.1.0",
+ "parts 0.1.0 (git+https://github.com/DianaNites/parts?branch=rewrite)",
  "serde 1.0.114 (registry+https://github.com/rust-lang/crates.io-index)",
  "serde_json 1.0.56 (registry+https://github.com/rust-lang/crates.io-index)",
  "structopt 0.3.15 (registry+https://github.com/rust-lang/crates.io-index)",
@@ -1190,6 +1191,7 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 "checksum numtoa 0.1.0 (registry+https://github.com/rust-lang/crates.io-index)" = "b8f8bdf33df195859076e54ab11ee78a1b208382d3a26ec40d142ffc1ecc49ef"
 "checksum opaque-debug 0.3.0 (registry+https://github.com/rust-lang/crates.io-index)" = "624a8340c38c1b80fd549087862da4ba43e08858af025b236e509b6649fc13d5"
 "checksum owning_ref 0.4.1 (registry+https://github.com/rust-lang/crates.io-index)" = "6ff55baddef9e4ad00f88b6c743a2a8062d4c6ade126c2a528644b8e444d52ce"
+"checksum parts 0.1.0 (git+https://github.com/DianaNites/parts?branch=rewrite)" = "<none>"
 "checksum pkg-config 0.3.17 (registry+https://github.com/rust-lang/crates.io-index)" = "05da548ad6865900e60eaba7f589cc0783590a92e940c26953ff81ddbab2d677"
 "checksum ppv-lite86 0.2.8 (registry+https://github.com/rust-lang/crates.io-index)" = "237a5ed80e274dbc66f86bd59c1e25edc039660be53194b5fe0a482e0f2612ea"
 "checksum proc-macro-error 1.0.3 (registry+https://github.com/rust-lang/crates.io-index)" = "fc175e9777c3116627248584e8f8b3e2987405cabe1c0adf7d1dd28f09dc7880"

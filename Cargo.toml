@@ -4,13 +4,15 @@ version = "0.1.0"
 authors = ["Diana"]
 edition = "2018"
 description = "A GPT Partition Manager"
+license = "MIT OR Apache-2.0"
+publish = false
 
 [[bin]]
 name = "parts"
 path = "src/main.rs"
 
 [dependencies]
-parts = { path = "../_NiteLinux/Userspace/parts" }
+parts = { git = "https://github.com/DianaNites/parts", branch = "rewrite" }
 structopt = "0.3.15"
 anyhow = "1.0.31"
 linapi = "0.5.1"
