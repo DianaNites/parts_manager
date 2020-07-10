@@ -1,0 +1,41 @@
+targets = [
+	{ triple = "x86_64-unknown-linux-gnu" }
+]
+
+[licenses]
+unlicensed = "warn"
+allow-osi-fsf-free = "both"
+copyleft = "deny"
+confidence-threshold = 0.95
+allow = [
+    "MIT",
+    "Apache-2.0",
+]
+
+[sources]
+allow-git = [
+    "https://github.com/DianaNites/uuid",
+]
+
+[bans]
+multiple-versions = "deny"
+highlight = "simplest-path"
+
+# Cursive uses 0.3.8 but cursive_core uses 0.4..
+[[bans.skip]]
+name = "ahash"
+version = "=0.3.8"
+
+# Structopt uses 0.8 and everything else uses 0.9
+[[bans.skip]]
+name = "strsim"
+version = "=0.8.0"
+
+[advisories]
+db-path = "~/.cargo/advisory-db"
+db-url = "https://github.com/RustSec/advisory-db"
+vulnerability = "deny"
+unmaintained = "warn"
+yanked = "warn"
+notice = "warn"
+severity-threshold = "medium"
